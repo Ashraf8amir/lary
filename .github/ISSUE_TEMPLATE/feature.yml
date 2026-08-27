@@ -1,0 +1,46 @@
+name: Feature
+description: Create a feature or product capability
+title: "[Feature]: "
+labels:
+  - type:feature
+
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: What should be built and why?
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance Criteria
+      placeholder: |
+        - [ ] ...
+        - [ ] ...
+    validations:
+      required: true
+
+  - type: input
+    id: branch
+    attributes:
+      label: Branch Name
+      placeholder: feature/short-description
+
+  - type: input
+    id: milestone
+    attributes:
+      label: Milestone
+      placeholder: Sprint 01 — Project Setup & Foundation
+
+  - type: textarea
+    id: dependencies
+    attributes:
+      label: Dependencies
+
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notes

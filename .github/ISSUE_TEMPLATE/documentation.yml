@@ -1,0 +1,32 @@
+name: Documentation
+description: Create or improve project documentation
+title: "[Docs]: "
+labels:
+  - type:documentation
+
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+    validations:
+      required: true
+
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope
+    validations:
+      required: true
+
+  - type: input
+    id: branch
+    attributes:
+      label: Branch Name
+      placeholder: docs/short-description
+
+  - type: input
+    id: milestone
+    attributes:
+      label: Milestone
+      placeholder: Sprint 01 — Project Setup & Foundation
