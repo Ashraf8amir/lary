@@ -1,7 +1,9 @@
+import { ConfigurationModule } from '@config/configuration.module';
 import { Module } from '@nestjs/common';
+import { DatabaseModule } from '@providers/mongoose/database.module';
 
 @Module({
-  imports: [],
+  imports: [ConfigurationModule, DatabaseModule],
   controllers: [],
   providers: [],
 })

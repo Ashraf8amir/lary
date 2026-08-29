@@ -13,7 +13,9 @@
       "@/*": ["./src/*"],
       "@config/*": ["./src/config/*"],
       "@common/*": ["./src/common/*"],
-      "@modules/*": ["./src/modules/*"]
+      "@modules/*": ["./src/modules/*"],
+      "@providers/*": ["./src/providers/*"],
+      "@infrastructure/*": ["./src/infrastructure/*"]
     },
 
     "emitDecoratorMetadata": true,

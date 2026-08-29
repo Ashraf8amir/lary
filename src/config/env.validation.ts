@@ -16,4 +16,23 @@ export const envValidationSchema = Joi.object({
   APP_NAME: Joi.string().required().messages({
     'any.required': 'APP_NAME is required',
   }),
+
+  DATABASE_URI: Joi.string().required().messages({
+    'any.required': 'DATABASE_URI is required',
+  }),
+  DATABASE_RETRY_ATTEMPTS: Joi.number().optional().default(5).messages({
+    'number.base': 'DATABASE_RETRY_ATTEMPTS must be a number',
+  }),
+  DATABASE_RETRY_DELAY: Joi.number().optional().default(1000).messages({
+    'number.base': 'DATABASE_RETRY_DELAY must be a number',
+  }),
+  DATABASE_MAX_POOL_SIZE: Joi.number().optional().default(10).messages({
+    'number.base': 'DATABASE_MAX_POOL_SIZE must be a number',
+  }),
+  DATABASE_MIN_POOL_SIZE: Joi.number().optional().default(5).messages({
+    'number.base': 'DATABASE_MIN_POOL_SIZE must be a number',
+  }),
+  DATABASE_SERVER_SELECTION_TIMEOUT_MS: Joi.number().optional().default(5000).messages({
+    'number.base': 'DATABASE_SERVER_SELECTION_TIMEOUT_MS must be a number',
+  }),
 });
