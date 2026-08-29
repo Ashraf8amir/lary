@@ -1,10 +1,19 @@
 import { AllExceptionsFilter } from '@common';
 import { ConfigurationModule } from '@config/configuration.module';
-import { BadRequestException, Module, ValidationError, ValidationPipe } from '@nestjs/common';
+import { DatabaseModule } from '@infrastructure/database/mongoose/database.module';
+import { LoggerModule } from '@infrastructure/logger/logger.module';
+import {
+  BadRequestException,
+  MiddlewareConsumer,
+  Module,
+  NestModule,
+  ValidationError,
+  ValidationPipe,
+} from '@nestjs/common';
 import { APP_FILTER, APP_PIPE } from '@nestjs/core';
-import { DatabaseModule } from '@providers/mongoose/database.module';
 import { ClsModule } from 'nestjs-cls';
 import { v4 as uuid } from 'uuid';
+import { LoggerMiddleware } from './common/middlewares/logger.middleware';
 
 @Module({
   imports: [
@@ -18,6 +27,7 @@ import { v4 as uuid } from 'uuid';
         idGenerator: (req) => (req.headers['x-request-id'] as string) ?? uuid(),
       },
     }),
+    LoggerModule,
   ],
   controllers: [],
   providers: [
@@ -47,4 +57,8 @@ import { v4 as uuid } from 'uuid';
     },
   ],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer.apply(LoggerMiddleware).forRoutes('{*path}');
+  }
+}
