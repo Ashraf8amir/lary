@@ -1,8 +1,8 @@
 import { AllExceptionsFilter } from '@common';
 import { ConfigurationModule } from '@config/configuration.module';
+import { DatabaseModule } from '@infrastructure/database/mongoose/database.module';
 import { BadRequestException, Module, ValidationError, ValidationPipe } from '@nestjs/common';
 import { APP_FILTER, APP_PIPE } from '@nestjs/core';
-import { DatabaseModule } from '@providers/mongoose/database.module';
 import { ClsModule } from 'nestjs-cls';
 import { v4 as uuid } from 'uuid';
 
