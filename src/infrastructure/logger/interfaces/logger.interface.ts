@@ -1,4 +1,4 @@
-import TransportStream from 'winston-transport';
+import * as TransportStream from 'winston-transport';
 
 export interface SlackTransportOptions extends TransportStream.TransportStreamOptions {
   webhookUrl: string;

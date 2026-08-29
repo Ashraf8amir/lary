@@ -11,7 +11,7 @@ const baseFormat = winston.format.combine(
 
 const { MAX_SIZE, ERROR_MAX_FILES, COMBINED_MAX_FILES } = LOGGER_CONSTANTS.FILE_ROTATION;
 
-export const fileTransports = [
+export const createFileTransports = () => [
   new winston.transports.DailyRotateFile({
     filename: 'logs/error-%DATE%.log',
     datePattern: 'YYYY-MM-DD',

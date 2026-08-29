@@ -1,5 +1,7 @@
 export const LOGGER_CONSTANTS = {
-  APP_NAME: process.env.APP_NAME || 'NestApp',
+  get APP_NAME(): string {
+    return process.env.APP_NAME || 'NestApp';
+  },
   SLACK: {
     STACK_TRACE_MAX_LENGTH: 600,
     CLIENT_ERROR_RANGE: { min: 400, max: 499 },
@@ -11,4 +13,4 @@ export const LOGGER_CONSTANTS = {
     ERROR_MAX_FILES: '30d',
     COMBINED_MAX_FILES: '14d',
   },
-};
+} as const;
