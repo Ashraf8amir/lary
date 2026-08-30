@@ -20,7 +20,7 @@ import { ApiResponseInterceptor } from './common/interceptors/api-response.inter
 import { TimeoutInterceptor } from './common/interceptors/timeout.interceptor';
 import { LoggerMiddleware } from './common/middlewares/logger.middleware';
 
-import { AppStartupService } from './app-startup.service';
+import { AppService } from './app.service';
 
 @Module({
   imports: [
@@ -45,7 +45,7 @@ import { AppStartupService } from './app-startup.service';
     ]),
   ],
   providers: [
-    AppStartupService,
+    AppService,
 
     { provide: APP_GUARD, useClass: ThrottlerGuard },
 

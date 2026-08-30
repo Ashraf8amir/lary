@@ -3,7 +3,7 @@ import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
 @Injectable()
-export class AppStartupService implements OnApplicationBootstrap {
+export class AppService implements OnApplicationBootstrap {
   private readonly logger = new Logger('AppStartup');
 
   constructor(
