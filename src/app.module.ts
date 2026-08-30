@@ -1,7 +1,3 @@
-import { AllExceptionsFilter } from '@common/filters/global-exception.filter';
-import { ConfigurationModule } from '@config/configuration.module';
-import { DatabaseModule } from '@infrastructure/database/mongoose/database.module';
-import { LoggerModule } from '@infrastructure/logger/logger.module';
 import {
   BadRequestException,
   MiddlewareConsumer,
@@ -10,16 +6,29 @@ import {
   ValidationError,
   ValidationPipe,
 } from '@nestjs/common';
-import { APP_FILTER, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
+import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { ClsModule } from 'nestjs-cls';
 import { v4 as uuid } from 'uuid';
+
+import { ConfigurationModule } from '@config/configuration.module';
+import { DatabaseModule } from '@infrastructure/database/mongoose/database.module';
+import { LoggerModule } from '@infrastructure/logger/logger.module';
+
+import { AllExceptionsFilter } from '@common/filters/global-exception.filter';
 import { ApiResponseInterceptor } from './common/interceptors/api-response.interceptor';
+import { TimeoutInterceptor } from './common/interceptors/timeout.interceptor';
 import { LoggerMiddleware } from './common/middlewares/logger.middleware';
+
+import { AppStartupService } from './app-startup.service';
 
 @Module({
   imports: [
     ConfigurationModule,
+
     DatabaseModule,
+    LoggerModule,
+
     ClsModule.forRoot({
       global: true,
       middleware: {
@@ -28,12 +37,23 @@ import { LoggerMiddleware } from './common/middlewares/logger.middleware';
         idGenerator: (req) => (req.headers['x-request-id'] as string) ?? uuid(),
       },
     }),
-    LoggerModule,
+
+    ThrottlerModule.forRoot([
+      { name: 'short', ttl: 1000, limit: 3 },
+      { name: 'medium', ttl: 10_000, limit: 20 },
+      { name: 'long', ttl: 60_000, limit: 100 },
+    ]),
   ],
-  controllers: [],
   providers: [
+    AppStartupService,
+
+    { provide: APP_GUARD, useClass: ThrottlerGuard },
+
+    { provide: APP_INTERCEPTOR, useClass: TimeoutInterceptor },
     { provide: APP_INTERCEPTOR, useClass: ApiResponseInterceptor },
+
     { provide: APP_FILTER, useClass: AllExceptionsFilter },
+
     {
       provide: APP_PIPE,
       useValue: new ValidationPipe({
