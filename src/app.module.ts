@@ -1,4 +1,4 @@
-import { AllExceptionsFilter } from '@common';
+import { AllExceptionsFilter } from '@common/filters/global-exception.filter';
 import { ConfigurationModule } from '@config/configuration.module';
 import { DatabaseModule } from '@infrastructure/database/mongoose/database.module';
 import { LoggerModule } from '@infrastructure/logger/logger.module';
@@ -10,9 +10,10 @@ import {
   ValidationError,
   ValidationPipe,
 } from '@nestjs/common';
-import { APP_FILTER, APP_PIPE } from '@nestjs/core';
+import { APP_FILTER, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
 import { ClsModule } from 'nestjs-cls';
 import { v4 as uuid } from 'uuid';
+import { ApiResponseInterceptor } from './common/interceptors/api-response.interceptor';
 import { LoggerMiddleware } from './common/middlewares/logger.middleware';
 
 @Module({
@@ -31,6 +32,7 @@ import { LoggerMiddleware } from './common/middlewares/logger.middleware';
   ],
   controllers: [],
   providers: [
+    { provide: APP_INTERCEPTOR, useClass: ApiResponseInterceptor },
     { provide: APP_FILTER, useClass: AllExceptionsFilter },
     {
       provide: APP_PIPE,
