@@ -21,6 +21,7 @@ import { TimeoutInterceptor } from './common/interceptors/timeout.interceptor';
 import { LoggerMiddleware } from './common/middlewares/logger.middleware';
 
 import { AppService } from './app.service';
+import { HealthModule } from './modules/health/health.module';
 
 @Module({
   imports: [
@@ -43,6 +44,8 @@ import { AppService } from './app.service';
       { name: 'medium', ttl: 10_000, limit: 20 },
       { name: 'long', ttl: 60_000, limit: 100 },
     ]),
+
+    HealthModule,
   ],
   providers: [
     AppService,

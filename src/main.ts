@@ -33,7 +33,7 @@ async function bootstrap() {
   app.use(cookieParser());
 
   app.setGlobalPrefix('api', {
-    exclude: [{ path: 'health', method: RequestMethod.GET }],
+    exclude: [{ path: 'health/*', method: RequestMethod.GET }],
   });
 
   app.enableVersioning({
