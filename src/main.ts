@@ -47,8 +47,11 @@ async function bootstrap() {
   logger.log(`Server running on port ${port} [${nodeEnv}]`);
 }
 
-process.on('unhandledRejection', (reason) => {
-  new Logger('UnhandledRejection').error(`Unhandled Promise Rejection: ${reason}`);
+process.on('unhandledRejection', (reason: unknown) => {
+  const message = reason instanceof Error ? reason.message : String(reason);
+  const stack = reason instanceof Error ? reason.stack : undefined;
+
+  new Logger('UnhandledRejection').error(`Unhandled Promise Rejection: ${message}`, stack);
 });
 
 process.on('uncaughtException', (error: Error) => {

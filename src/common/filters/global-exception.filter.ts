@@ -61,7 +61,6 @@ export class AllExceptionsFilter implements ExceptionFilter {
       return exception.errorCode;
     }
 
-    // Mapping HTTP Status to default ErrorCode if not explicitly provided
     const statusKey = HttpStatus[status];
     return statusKey ? statusKey.toUpperCase() : ErrorCode.INTERNAL_SERVER_ERROR;
   }
@@ -73,7 +72,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
     if (exception instanceof BusinessException) {
       return {
         message: exception.message,
-        errors: exception.details,
+        errors: exception.errors,
       };
     }
 
