@@ -1,5 +1,5 @@
 import {
-  BadRequestException,
+  HttpStatus,
   MiddlewareConsumer,
   Module,
   NestModule,
@@ -16,12 +16,13 @@ import { DatabaseModule } from '@infrastructure/database/mongoose/database.modul
 import { LoggerModule } from '@infrastructure/logger/logger.module';
 
 import { AllExceptionsFilter } from '@common/filters/global-exception.filter';
-import { ApiResponseInterceptor } from './common/interceptors/api-response.interceptor';
-import { TimeoutInterceptor } from './common/interceptors/timeout.interceptor';
-import { LoggerMiddleware } from './common/middlewares/logger.middleware';
+import { ApiResponseInterceptor } from '@common/interceptors/api-response.interceptor';
+import { TimeoutInterceptor } from '@common/interceptors/timeout.interceptor';
+import { LoggerMiddleware } from '@common/middlewares/logger.middleware';
 
+import { HealthModule } from '@modules/health/health.module';
 import { AppService } from './app.service';
-import { HealthModule } from './modules/health/health.module';
+import { BusinessException, ErrorCode } from './common';
 
 @Module({
   imports: [
@@ -63,19 +64,20 @@ import { HealthModule } from './modules/health/health.module';
         whitelist: true,
         forbidNonWhitelisted: true,
         transform: true,
-        transformOptions: { enableImplicitConversion: true },
-        exceptionFactory: (validationErrors: ValidationError[] = []) => {
-          const formatErrors = (errors: ValidationError[]): any[] => {
-            return errors.map((error) => ({
-              field: error.property,
-              errors: error.constraints ? Object.values(error.constraints) : [],
-              children: error.children?.length ? formatErrors(error.children) : undefined,
-            }));
-          };
 
-          return new BadRequestException({
-            message: 'Validation failed',
-            errors: formatErrors(validationErrors),
+        transformOptions: {
+          enableImplicitConversion: true,
+        },
+
+        exceptionFactory: (validationErrors: ValidationError[] = []) => {
+          const errors = validationErrors.flatMap((error) =>
+            Object.values(error.constraints ?? {}),
+          );
+
+          return new BusinessException('Validation failed', {
+            statusCode: HttpStatus.BAD_REQUEST,
+            errorCode: ErrorCode.VALIDATION_FAILED,
+            errors,
           });
         },
       }),

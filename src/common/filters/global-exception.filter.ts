@@ -12,7 +12,7 @@ import { ClsService } from 'nestjs-cls';
 import { Environment } from '../enums/environment.enum';
 import { ErrorCode } from '../enums/error-code.enum';
 import { BusinessException } from '../exceptions/business.exception';
-import { ErrorResponse } from '../interfaces/error-response.interface';
+import { ErrorDetails, ErrorResponse } from '../interfaces/error.interface';
 
 @Catch()
 export class AllExceptionsFilter implements ExceptionFilter {
@@ -26,29 +26,33 @@ export class AllExceptionsFilter implements ExceptionFilter {
 
   catch(exception: unknown, host: ArgumentsHost): void {
     const { httpAdapter } = this.httpAdapterHost;
-    const ctx = host.switchToHttp();
-    const response = ctx.getResponse();
-    const request = ctx.getRequest();
 
-    const isHttp = exception instanceof HttpException;
-    const statusCode = isHttp ? exception.getStatus() : HttpStatus.INTERNAL_SERVER_ERROR;
+    const context = host.switchToHttp();
+    const request = context.getRequest();
+    const response = context.getResponse();
 
-    const { message, errors } = this.extractDetails(exception, statusCode);
-    const errorCode = this.extractErrorCode(exception, statusCode);
-    const requestId = this.cls?.getId?.();
-    const errorStack = this.extractStack(exception);
+    const statusCode = this.getStatusCode(exception);
+    const { message, errors } = this.getErrorDetails(exception);
+    const errorCode = this.getErrorCode(exception, statusCode);
+
+    const requestId = this.getRequestId();
+    const stack = this.getStack(exception);
 
     const errorResponse: ErrorResponse = {
       success: false,
       statusCode,
       errorCode,
       message,
-      ...(errors && { errors }),
+
+      ...(errors?.length ? { errors } : {}),
+
       method: request.method,
       path: request.url,
       timestamp: new Date().toISOString(),
+
       ...(requestId && { requestId }),
-      ...(!this.isProduction && errorStack && { stack: errorStack }),
+
+      ...(!this.isProduction && stack ? { stack } : {}),
     };
 
     this.logException(exception, errorResponse);
@@ -56,19 +60,23 @@ export class AllExceptionsFilter implements ExceptionFilter {
     httpAdapter.reply(response, errorResponse, statusCode);
   }
 
-  private extractErrorCode(exception: unknown, status: HttpStatus): ErrorCode | string {
+  private getStatusCode(exception: unknown): number {
+    if (exception instanceof HttpException) {
+      return exception.getStatus();
+    }
+
+    return HttpStatus.INTERNAL_SERVER_ERROR;
+  }
+
+  private getErrorCode(exception: unknown, statusCode: number): ErrorCode | string {
     if (exception instanceof BusinessException) {
       return exception.errorCode;
     }
 
-    const statusKey = HttpStatus[status];
-    return statusKey ? statusKey.toUpperCase() : ErrorCode.INTERNAL_SERVER_ERROR;
+    return HttpStatus[statusCode]?.toUpperCase() ?? ErrorCode.INTERNAL_SERVER_ERROR;
   }
 
-  private extractDetails(
-    exception: unknown,
-    _statusCode: HttpStatus,
-  ): { message: string; errors?: any } {
+  private getErrorDetails(exception: unknown): ErrorDetails {
     if (exception instanceof BusinessException) {
       return {
         message: exception.message,
@@ -77,48 +85,95 @@ export class AllExceptionsFilter implements ExceptionFilter {
     }
 
     if (exception instanceof HttpException) {
-      const res = exception.getResponse();
-
-      if (typeof res === 'object' && res !== null) {
-        const resObj = res as Record<string, any>;
-
-        // Handles class-validator error array
-        if (Array.isArray(resObj.message)) {
-          return {
-            message: 'Validation failed',
-            errors: resObj.message,
-          };
-        }
-
-        return {
-          message: resObj.message || exception.message,
-        };
-      }
-
-      return { message: String(res) };
+      return this.getHttpExceptionDetails(exception);
     }
 
-    // Safety fallback for unknown runtime errors in Production
     return {
       message: this.isProduction
         ? 'An unexpected error occurred. Please try again later.'
-        : exception instanceof Error
-          ? exception.message
-          : 'Internal server error',
+        : this.getUnknownExceptionMessage(exception),
     };
   }
 
-  private extractStack(exception: unknown): string | undefined {
+  private getHttpExceptionDetails(exception: HttpException): ErrorDetails {
+    const response = exception.getResponse();
+
+    if (typeof response === 'string') {
+      return {
+        message: response,
+      };
+    }
+
+    if (!this.isRecord(response)) {
+      return {
+        message: exception.message,
+      };
+    }
+
+    const { message, errors } = response;
+
+    if (Array.isArray(errors)) {
+      return {
+        message: typeof message === 'string' ? message : 'Request failed',
+        errors: this.filterStringErrors(errors),
+      };
+    }
+
+    if (Array.isArray(message)) {
+      return {
+        message: 'Validation failed',
+        errors: this.filterStringErrors(message),
+      };
+    }
+
+    if (typeof message === 'string') {
+      return {
+        message,
+      };
+    }
+
+    return {
+      message: exception.message,
+    };
+  }
+
+  private filterStringErrors(errors: unknown[]): string[] {
+    return errors.filter((error): error is string => typeof error === 'string');
+  }
+
+  private getUnknownExceptionMessage(exception: unknown): string {
+    if (exception instanceof Error) {
+      return exception.message;
+    }
+
+    return 'Internal server error';
+  }
+
+  private getRequestId(): string | undefined {
+    return this.cls.getId();
+  }
+
+  private getStack(exception: unknown): string | undefined {
     return exception instanceof Error ? exception.stack : undefined;
   }
 
-  private logException(exception: unknown, errorRes: ErrorResponse): void {
-    const logContext = `[${errorRes.method}] ${errorRes.path} - Status: ${errorRes.statusCode} - Code: ${errorRes.errorCode}`;
+  private isRecord(value: unknown): value is Record<string, unknown> {
+    return typeof value === 'object' && value !== null;
+  }
 
-    if (errorRes.statusCode >= HttpStatus.INTERNAL_SERVER_ERROR) {
-      this.logger.error(`${logContext} - Error: ${errorRes.message}`, this.extractStack(exception));
-    } else {
-      this.logger.warn(`${logContext} - Warn: ${errorRes.message}`);
+  private logException(exception: unknown, errorResponse: ErrorResponse): void {
+    const context =
+      `[${errorResponse.method}] ` +
+      `${errorResponse.path} - ` +
+      `Status: ${errorResponse.statusCode} - ` +
+      `Code: ${errorResponse.errorCode}`;
+
+    if (errorResponse.statusCode >= HttpStatus.INTERNAL_SERVER_ERROR) {
+      this.logger.error(`${context} - Error: ${errorResponse.message}`, this.getStack(exception));
+
+      return;
     }
+
+    this.logger.warn(`${context} - Warn: ${errorResponse.message}`);
   }
 }
