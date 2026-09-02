@@ -1,4 +1,4 @@
-# Sprint 02 — Salla Integration & OAuth
+# Sprint 03 — Salla Integration & OAuth
 
 ## Sprint Goal
 
@@ -19,7 +19,7 @@ By the end of this Sprint, a merchant should be able to:
 
 # Milestone
 
-`Sprint 02 — Salla Integration & OAuth`
+`Sprint 03 — Salla Integration & OAuth`
 
 ---
 
@@ -94,7 +94,7 @@ Configure the backend to communicate with the Salla application using environmen
 `feature/configure-salla-application`
 
 **Milestone:**
-`Sprint 02 — Salla Integration & OAuth`
+`Sprint 03 — Salla Integration & OAuth`
 
 **Dependencies:**
 `Sprint 01 — Project Setup & Foundation`
@@ -162,7 +162,7 @@ Create the dedicated NestJS module responsible for managing the relationship bet
 `feature/create-salla-integration-module`
 
 **Milestone:**
-`Sprint 02 — Salla Integration & OAuth`
+`Sprint 03 — Salla Integration & OAuth`
 
 **Dependencies:**
 - Issue 01 — Configure Salla Application
@@ -233,7 +233,7 @@ Create the Mongoose database schema responsible for storing merchant connections
 `feature/add-salla-integration-schema`
 
 **Milestone:**
-`Sprint 02 — Salla Integration & OAuth`
+`Sprint 03 — Salla Integration & OAuth`
 
 **Dependencies:**
 - Issue 02 — Create Salla Integration Module
@@ -302,7 +302,7 @@ Create the backend endpoint (`GET /api/v1/integrations/salla/oauth`) that initia
 `feature/salla-oauth-authorization`
 
 **Milestone:**
-`Sprint 02 — Salla Integration & OAuth`
+`Sprint 03 — Salla Integration & OAuth`
 
 **Dependencies:**
 - Issue 01 — Configure Salla Application
@@ -375,7 +375,7 @@ Create the OAuth callback endpoint (`GET /api/v1/integrations/salla/callback`) t
 `feature/salla-oauth-callback`
 
 **Milestone:**
-`Sprint 02 — Salla Integration & OAuth`
+`Sprint 03 — Salla Integration & OAuth`
 
 **Dependencies:**
 - Issue 03 — Create Integration Schema
@@ -446,7 +446,7 @@ Implement idempotent persistence logic for Salla store integrations. The service
 `feature/salla-integration-upsert`
 
 **Milestone:**
-`Sprint 02 — Salla Integration & OAuth`
+`Sprint 03 — Salla Integration & OAuth`
 
 **Dependencies:**
 - Issue 03 — Create Integration Schema
@@ -516,7 +516,7 @@ Build an HTTP client wrapper using NestJS `HttpModule` (Axios) for interacting w
 `feature/create-salla-api-client`
 
 **Milestone:**
-`Sprint 02 — Salla Integration & OAuth`
+`Sprint 03 — Salla Integration & OAuth`
 
 **Dependencies:**
 - Issue 03 — Create Integration Schema
@@ -583,7 +583,7 @@ Implement status query and management capabilities for Salla integrations. The p
 `feature/salla-integration-status`
 
 **Milestone:**
-`Sprint 02 — Salla Integration & OAuth`
+`Sprint 03 — Salla Integration & OAuth`
 
 **Dependencies:**
 - Issue 03 — Create Integration Schema
@@ -653,7 +653,7 @@ Implement the endpoint (`DELETE /api/v1/integrations/salla`) and business logic 
 `feature/salla-integration-disconnect`
 
 **Milestone:**
-`Sprint 02 — Salla Integration & OAuth`
+`Sprint 03 — Salla Integration & OAuth`
 
 **Dependencies:**
 - Issue 08 — Implement Integration Status
@@ -720,7 +720,7 @@ Implement centralized error handling and domain exceptions for the Salla integra
 `feature/handle-salla-integration-errors`
 
 **Milestone:**
-`Sprint 02 — Salla Integration & OAuth`
+`Sprint 03 — Salla Integration & OAuth`
 
 **Dependencies:**
 - Issue 05 — Implement Salla OAuth Callback
@@ -790,10 +790,10 @@ Add automated end-to-end and integration tests covering the complete Salla OAuth
 `test/salla-integration`
 
 **Milestone:**
-`Sprint 02 — Salla Integration & OAuth`
+`Sprint 03 — Salla Integration & OAuth`
 
 **Dependencies:**
-- All implementation Issues in Sprint 02
+- All implementation Issues in Sprint 03
 
 **Notes:**
 Use NestJS testing module and mock Axios calls / Nock.
@@ -857,10 +857,10 @@ Create developer documentation detailing the Salla OAuth installation flow, avai
 `docs/document-salla-integration`
 
 **Milestone:**
-`Sprint 02 — Salla Integration & OAuth`
+`Sprint 03 — Salla Integration & OAuth`
 
 **Dependencies:**
-- All implementation Issues in Sprint 02
+- All implementation Issues in Sprint 03
 
 **Notes:**
 Place documentation in `docs/integrations/salla.md`.

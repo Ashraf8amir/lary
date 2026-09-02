@@ -182,8 +182,8 @@ Each development Sprint corresponds directly to one GitHub Milestone representin
 ### Milestone Schedule
 
 * **Sprint 01 — Project Setup & Foundation:** Backend scaffolding, configuration, MongoDB, logging, exception filters, and health checks.
-* **Sprint 02 — Salla Integration & OAuth:** Salla application setup, OAuth authorization, code exchange, store persistence, and API client.
-* **Sprint 03 — Authentication & Users:** User accounts, password management, JWT authentication, refresh token rotation, and security controls.
+* **Sprint 02 — Authentication & Users:** User accounts, password management, JWT authentication, refresh token rotation, and security controls.
+* **Sprint 03 — Salla Integration & OAuth:** Salla application setup, OAuth authorization, code exchange, store persistence, and API client.
 * **Sprint 04 — Product Synchronization:** Catalog ingestion, caching, variant indexing, and Salla webhook updates.
 * **Sprint 05 — Chatbot Core:** Conversational engine, natural language product search, scope boundaries, and dialect support.
 * **Sprint 06 — Analytics & Events:** Demand tracking, lost opportunities engine, potential cart value, and event pipelines.
@@ -286,8 +286,8 @@ The project uses Semantic Versioning (`MAJOR.MINOR.PATCH`). Milestones and Relea
 
 ```text
 Sprint 01 Complete  ──►  Release v0.1.0 (Foundation)
-Sprint 02 Complete  ──►  Release v0.2.0 (Salla OAuth)
-Sprint 03 Complete  ──►  Release v0.3.0 (Authentication & Users)
+Sprint 02 Complete  ──►  Release v0.2.0 (Authentication & Users)
+Sprint 03 Complete  ──►  Release v0.3.0 (Salla OAuth)
 Sprint 04 Complete  ──►  Release v0.4.0 (Product Sync)
 Sprint 05 Complete  ──►  Release v0.5.0 (Chatbot Core)
 Sprint 06 Complete  ──►  Release v0.6.0 (Analytics & Events)

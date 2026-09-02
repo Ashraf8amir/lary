@@ -11,8 +11,8 @@ Build an enterprise-grade AI shopping assistant for Salla stores that simplifies
 | Milestone | Deliverable Scope | Target Release |
 | :--- | :--- | :--- |
 | **Sprint 01** | Project Setup & Foundation | `v0.1.0` |
-| **Sprint 02** | Salla Integration & OAuth | `v0.2.0` |
-| **Sprint 03** | Authentication & Users | `v0.3.0` |
+| **Sprint 02** | Authentication & Users | `v0.2.0` |
+| **Sprint 03** | Salla Integration & OAuth | `v0.3.0` |
 | **Sprint 04** | Product Synchronization | `v0.4.0` |
 | **Sprint 05** | Chatbot & Conversational Search | `v0.5.0` |
 | **Sprint 06** | Analytics & Event Pipeline | `v0.6.0` |
@@ -42,29 +42,7 @@ Establish a clean, scalable, and production-ready backend foundation with centra
 
 ---
 
-## Sprint 02 — Salla Integration & OAuth
-
-### Goal
-Implement the end-to-end Salla OAuth installation flow to authenticate and connect merchants' Salla stores securely, handle token lifecycle events, and establish the reusable Salla API client.
-
-### Main Areas
-- Salla application credentials configuration and validation
-- Isolated Salla integration module and merchant connection schema
-- OAuth authorization URL generator with cryptographic state verification
-- OAuth callback handler for authorization code exchange
-- Merchant and store profile extraction from Salla APIs
-- Idempotent integration creation and reinstallation/upsert handling
-- Reusable Salla HTTP API client foundation
-- Integration lifecycle management (`connected`, `disconnected`)
-- Disconnect endpoint with secure token revocation and data retention
-- Salla domain exception handling and automated integration tests
-
-### Target Release
-`v0.2.0`
-
----
-
-## Sprint 03 — Authentication & Users
+## Sprint 02 — Authentication & Users
 
 ### Goal
 Provide secure password-based authentication, user account management, and session controls for merchants accessing the platform dashboard.
@@ -82,6 +60,28 @@ Provide secure password-based authentication, user account management, and sessi
 - Password change and secure, single-use password reset flows
 - Security controls: configurable account lockout and sanitized security audit logs
 - Automated authentication test suites and developer documentation
+
+### Target Release
+`v0.2.0`
+
+---
+
+## Sprint 03 — Salla Integration & OAuth
+
+### Goal
+Implement the end-to-end Salla OAuth installation flow to authenticate and connect merchants' Salla stores securely, handle token lifecycle events, and establish the reusable Salla API client.
+
+### Main Areas
+- Salla application credentials configuration and validation
+- Isolated Salla integration module and merchant connection schema
+- OAuth authorization URL generator with cryptographic state verification
+- OAuth callback handler for authorization code exchange
+- Merchant and store profile extraction from Salla APIs
+- Idempotent integration creation and reinstallation/upsert handling
+- Reusable Salla HTTP API client foundation
+- Integration lifecycle management (`connected`, `disconnected`)
+- Disconnect endpoint with secure token revocation and data retention
+- Salla domain exception handling and automated integration tests
 
 ### Target Release
 `v0.3.0`

@@ -1,4 +1,4 @@
-# Sprint 03 — Authentication & Users
+# Sprint 02 — Authentication & Users
 
 ## Sprint Goal
 
@@ -22,7 +22,7 @@ By the end of this Sprint, a merchant should be able to:
 
 # Milestone
 
-`Sprint 03 — Authentication & Users`
+`Sprint 02 — Authentication & Users`
 
 ---
 
@@ -145,10 +145,10 @@ Create the Users module responsible for managing platform user accounts. The mod
 `feature/create-user-module`
 
 **Milestone:**
-`Sprint 03 — Authentication & Users`
+`Sprint 02 — Authentication & Users`
 
 **Dependencies:**
-- `Sprint 02 — Salla Integration & OAuth`
+- `Sprint 03 — Salla Integration & OAuth`
 
 **Notes:**
 Keep core user profile management cleanly separated from credential and token concerns.
@@ -215,7 +215,7 @@ Create the Mongoose database model representing a platform user account. The sch
 `feature/add-user-schema`
 
 **Milestone:**
-`Sprint 03 — Authentication & Users`
+`Sprint 02 — Authentication & Users`
 
 **Dependencies:**
 - Issue 01 — Create User Module
@@ -285,7 +285,7 @@ Create the authentication module responsible for authenticating users, validatin
 `feature/create-auth-module`
 
 **Milestone:**
-`Sprint 03 — Authentication & Users`
+`Sprint 02 — Authentication & Users`
 
 **Dependencies:**
 - Issue 01 — Create User Module
@@ -355,7 +355,7 @@ Create the database persistence model responsible for storing authentication cre
 `feature/add-auth-schema`
 
 **Milestone:**
-`Sprint 03 — Authentication & Users`
+`Sprint 02 — Authentication & Users`
 
 **Dependencies:**
 - Issue 03 — Create Auth Module
@@ -424,7 +424,7 @@ Implement the user creation workflow that creates a new platform account, associ
 `feature/create-user-account`
 
 **Milestone:**
-`Sprint 03 — Authentication & Users`
+`Sprint 02 — Authentication & Users`
 
 **Dependencies:**
 - Issue 02 — Create User Schema
@@ -494,7 +494,7 @@ Allow merchants onboarded via Salla OAuth without a pre-existing password to sec
 `feature/set-initial-password`
 
 **Milestone:**
-`Sprint 03 — Authentication & Users`
+`Sprint 02 — Authentication & Users`
 
 **Dependencies:**
 - Issue 05 — Create User Account Flow
@@ -565,7 +565,7 @@ Implement password-based authentication endpoint (`POST /auth/login`). Validates
 `feature/user-login`
 
 **Milestone:**
-`Sprint 03 — Authentication & Users`
+`Sprint 02 — Authentication & Users`
 
 **Dependencies:**
 - Issue 04 — Create Auth Schema
@@ -634,7 +634,7 @@ Implement JWT access token strategy and authentication guard (`JwtAuthGuard`) fo
 `feature/jwt-authentication`
 
 **Milestone:**
-`Sprint 03 — Authentication & Users`
+`Sprint 02 — Authentication & Users`
 
 **Dependencies:**
 - Issue 03 — Create Auth Module
@@ -703,7 +703,7 @@ Implement refresh token endpoint (`POST /auth/refresh`) using token rotation. Va
 `feature/refresh-token-rotation`
 
 **Milestone:**
-`Sprint 03 — Authentication & Users`
+`Sprint 02 — Authentication & Users`
 
 **Dependencies:**
 - Issue 08 — Implement JWT Authentication
@@ -771,7 +771,7 @@ Implement logout endpoint (`POST /auth/logout`) for authenticated users. The end
 `feature/user-logout`
 
 **Milestone:**
-`Sprint 03 — Authentication & Users`
+`Sprint 02 — Authentication & Users`
 
 **Dependencies:**
 - Issue 09 — Implement Refresh Token Flow
@@ -838,7 +838,7 @@ Create protected endpoint (`GET /auth/me`) that returns the profile data and sto
 `feature/current-user-endpoint`
 
 **Milestone:**
-`Sprint 03 — Authentication & Users`
+`Sprint 02 — Authentication & Users`
 
 **Dependencies:**
 - Issue 08 — Implement JWT Authentication
@@ -907,7 +907,7 @@ Implement password change endpoint (`PATCH /auth/password`) for authenticated us
 `feature/change-password`
 
 **Milestone:**
-`Sprint 03 — Authentication & Users`
+`Sprint 02 — Authentication & Users`
 
 **Dependencies:**
 - Issue 07 — Implement User Login
@@ -976,7 +976,7 @@ Implement forgot password endpoint (`POST /auth/password/forgot`). Generates a c
 `feature/password-reset-request`
 
 **Milestone:**
-`Sprint 03 — Authentication & Users`
+`Sprint 02 — Authentication & Users`
 
 **Dependencies:**
 - Issue 04 — Create Authentication Credentials Schema
@@ -1045,7 +1045,7 @@ Implement password reset completion endpoint (`POST /auth/password/reset`). Vali
 `feature/password-reset`
 
 **Milestone:**
-`Sprint 03 — Authentication & Users`
+`Sprint 02 — Authentication & Users`
 
 **Dependencies:**
 - Issue 13 — Request Password Reset
@@ -1113,7 +1113,7 @@ Implement defense-in-depth security controls around login attempts. Tracks conse
 `feature/auth-security-controls`
 
 **Milestone:**
-`Sprint 03 — Authentication & Users`
+`Sprint 02 — Authentication & Users`
 
 **Dependencies:**
 - Issue 07 — Implement User Login
@@ -1183,10 +1183,10 @@ Add comprehensive automated unit and integration tests covering user creation, l
 `test/authentication-and-users`
 
 **Milestone:**
-`Sprint 03 — Authentication & Users`
+`Sprint 02 — Authentication & Users`
 
 **Dependencies:**
-- All implementation Issues in Sprint 03
+- All implementation Issues in Sprint 02
 
 **Notes:**
 Use NestJS testing module and in-memory MongoDB / mock repositories.
@@ -1250,10 +1250,10 @@ Document the authentication architecture, token lifecycle, password management, 
 `docs/document-authentication`
 
 **Milestone:**
-`Sprint 03 — Authentication & Users`
+`Sprint 02 — Authentication & Users`
 
 **Dependencies:**
-- All implementation Issues in Sprint 03
+- All implementation Issues in Sprint 02
 
 **Notes:**
 Place documentation in `docs/auth/authentication.md`.
