@@ -100,6 +100,18 @@ export class AuthService {
     };
   }
 
+  async logout(userId: Types.ObjectId, sessionId: string): Promise<void> {
+    await this.SessionService.deleteSession(userId, sessionId);
+  }
+
+  async logoutAll(userId: Types.ObjectId): Promise<void> {
+    await this.SessionService.deleteAllSessions(userId);
+  }
+
+  async getActiveSessions(userId: Types.ObjectId, currentSessionId: string) {
+    return this.SessionService.getActiveSessions(userId, currentSessionId);
+  }
+
   private async issueTokensForNewSession(
     userId: Types.ObjectId,
     context: SessionContext,
