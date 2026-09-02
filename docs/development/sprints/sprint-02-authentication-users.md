@@ -882,8 +882,7 @@ Return clean DTO wrapped in consistent JSON response structure.
 
 **Plan Commit:**
 
-- Commit 1: `feat: add get me service query`
-- Commit 2: `feat: add get current user endpoint and serialization dto`
+- Commit 1: `feat: add get current user endpoint and serialization dto`
 
 ---
 

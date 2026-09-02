@@ -20,6 +20,7 @@ import { CurrentUser } from './decorators/current-user.decorator';
 import { Public } from './decorators/public.decorator';
 import { AuthResponseDto } from './dtos/auth-response.dto';
 import { LoginDto } from './dtos/login.dto';
+import { UserProfileDto } from './dtos/user-profile.dto';
 import { RefreshTokenGuard } from './guards/refresh.token.guard';
 import { GenerateTokensResult } from './interfaces/auth-result.interface';
 import { SessionContext } from './interfaces/session-context.interface';
@@ -92,6 +93,13 @@ export class AuthController {
     );
 
     return sessions;
+  }
+
+  @Get('me')
+  @HttpCode(HttpStatus.OK)
+  @ResponseMessage('User retrieved')
+  async getCurrentUser(@CurrentUser() user: { _id: Types.ObjectId }): Promise<UserProfileDto> {
+    return this.authService.getCurrentUser(user._id.toString());
   }
 
   private extractSessionContext(req: Request): SessionContext {

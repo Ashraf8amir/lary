@@ -7,6 +7,7 @@ import { Types } from 'mongoose';
 import { UsersService } from '@/modules/users/users.service';
 
 import { LoginDto } from './dtos/login.dto';
+import { UserProfileDto } from './dtos/user-profile.dto';
 import { GenerateTokensResult } from './interfaces/auth-result.interface';
 import { SessionContext } from './interfaces/session-context.interface';
 import { AuthRepository } from './repositories/auth.repository';
@@ -110,6 +111,22 @@ export class AuthService {
 
   async getActiveSessions(userId: Types.ObjectId, currentSessionId: string) {
     return this.SessionService.getActiveSessions(userId, currentSessionId);
+  }
+
+  async getCurrentUser(userId: string): Promise<UserProfileDto> {
+    const user = await this.usersService.findById(userId);
+
+    if (!user) {
+      throw new UnauthorizedException('User not found');
+    }
+
+    return {
+      id: user._id.toString(),
+      email: user.email,
+      fullName: user.fullName,
+      status: user.status,
+      createdAt: user.createdAt,
+    };
   }
 
   private async issueTokensForNewSession(
