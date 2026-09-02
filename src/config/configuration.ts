@@ -29,4 +29,12 @@ export default () => ({
       expiration: process.env.JWT_REFRESH_EXPIRATION || '7d',
     },
   },
+
+  redis: {
+    host: process.env.REDIS_HOST,
+    port: Number(process.env.REDIS_PORT) || 6379,
+    password: process.env.REDIS_PASSWORD,
+    username: process.env.REDIS_USERNAME,
+    db: Number(process.env.DATABASE_REDIS_DB) || 0,
+  },
 });

@@ -53,4 +53,21 @@ export const envValidationSchema = Joi.object({
   JWT_REFRESH_EXPIRATION: Joi.string().required().messages({
     'any.required': 'JWT_REFRESH_EXPIRATION is required',
   }),
+
+  REDIS_HOST: Joi.string().required().messages({
+    'any.required': 'REDIS_HOST is required',
+  }),
+  REDIS_PORT: Joi.number().required().messages({
+    'number.base': 'REDIS_PORT must be a number',
+    'any.required': 'REDIS_PORT is required',
+  }),
+  REDIS_PASSWORD: Joi.string().optional().allow('').messages({
+    'string.base': 'REDIS_PASSWORD must be a string',
+  }),
+  REDIS_USERNAME: Joi.string().optional().allow('').messages({
+    'string.base': 'REDIS_USERNAME must be a string',
+  }),
+  DATABASE_REDIS_DB: Joi.number().optional().default(0).messages({
+    'number.base': 'DATABASE_REDIS_DB must be a number',
+  }),
 });
