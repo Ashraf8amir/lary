@@ -587,10 +587,9 @@ Implement password-based authentication endpoint (`POST /auth/login`). Validates
 **Notes:**
 Return access token in payload; handle refresh token securely via response body or httpOnly cookie.
 
-**Plan Commit:**
+**Plan Commit:**feat: add login endpoint with token pair generation
 
-- Commit 1: `feat: implement login credential validation and attempt tracking`
-- Commit 2: `feat: add login endpoint with token pair generation`
+- Commit 1: `feat: add login endpoint with token pair generation`
 
 ---
 
