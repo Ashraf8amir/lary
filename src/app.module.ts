@@ -23,6 +23,7 @@ import { LoggerMiddleware } from '@common/middlewares/logger.middleware';
 import { HealthModule } from '@modules/health/health.module';
 import { AppService } from './app.service';
 import { BusinessException, ErrorCode } from './common';
+import { CacheModule } from './infrastructure/cache/cache.module';
 import { RedisModule } from './infrastructure/redis/redis.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { JwtAccessGuard } from './modules/auth/guards/jwt-auth.guard';
@@ -34,6 +35,7 @@ import { UsersModule } from './modules/users/users.module';
     DatabaseModule,
     LoggerModule,
     RedisModule,
+    CacheModule,
 
     ClsModule.forRoot({
       global: true,
