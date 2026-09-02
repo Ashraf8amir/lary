@@ -664,7 +664,6 @@ Keep JWT payload minimal (`sub`, `email`, `storeId`).
 **Plan Commit:**
 
 - Commit 1: `feat: implement passport jwt strategy and jwt guard`
-- Commit 2: `feat: configure access token signing and token extractor`
 
 ---
 
