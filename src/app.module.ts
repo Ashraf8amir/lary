@@ -23,6 +23,7 @@ import { LoggerMiddleware } from '@common/middlewares/logger.middleware';
 import { HealthModule } from '@modules/health/health.module';
 import { AppService } from './app.service';
 import { BusinessException, ErrorCode } from './common';
+import { UsersModule } from './modules/users/users.module';
 
 @Module({
   imports: [
@@ -47,6 +48,7 @@ import { BusinessException, ErrorCode } from './common';
     ]),
 
     HealthModule,
+    UsersModule,
   ],
   providers: [
     AppService,
