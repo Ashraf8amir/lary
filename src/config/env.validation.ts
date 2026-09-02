@@ -17,6 +17,11 @@ export const envValidationSchema = Joi.object({
     'any.required': 'APP_NAME is required',
   }),
 
+  SLACK_WEBHOOK_URL: Joi.string().uri().required().messages({
+    'string.uri': 'SLACK_WEBHOOK_URL must be a valid URL',
+    'any.required': 'SLACK_WEBHOOK_URL is required',
+  }),
+
   DATABASE_URI: Joi.string().required().messages({
     'any.required': 'DATABASE_URI is required',
   }),
@@ -34,5 +39,18 @@ export const envValidationSchema = Joi.object({
   }),
   DATABASE_SERVER_SELECTION_TIMEOUT_MS: Joi.number().optional().default(5000).messages({
     'number.base': 'DATABASE_SERVER_SELECTION_TIMEOUT_MS must be a number',
+  }),
+
+  JWT_ACCESS_SECRET: Joi.string().required().messages({
+    'any.required': 'JWT_ACCESS_SECRET is required',
+  }),
+  JWT_ACCESS_EXPIRATION: Joi.string().required().messages({
+    'any.required': 'JWT_ACCESS_EXPIRATION is required',
+  }),
+  JWT_REFRESH_SECRET: Joi.string().required().messages({
+    'any.required': 'JWT_REFRESH_SECRET is required',
+  }),
+  JWT_REFRESH_EXPIRATION: Joi.string().required().messages({
+    'any.required': 'JWT_REFRESH_EXPIRATION is required',
   }),
 });

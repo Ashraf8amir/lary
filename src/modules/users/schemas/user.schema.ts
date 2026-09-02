@@ -35,6 +35,9 @@ export class User {
     index: true,
   })
   status!: UserStatus;
+
+  createdAt!: Date;
+  updatedAt!: Date;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);
