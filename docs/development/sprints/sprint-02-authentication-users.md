@@ -365,7 +365,6 @@ All refresh tokens and reset tokens must be stored as one-way cryptographic hash
 **Plan Commit:**
 
 - Commit 1: `feat: create auth credentials mongoose schema`
-- Commit 2: `feat: add indexes and query protection for security credentials`
 
 ---
 
