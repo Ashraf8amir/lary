@@ -7,6 +7,7 @@ import { AuthService } from './auth.service';
 import { RefreshTokenGuard } from './guards/refresh.token.guard';
 import { AuthRepository } from './repositories/auth.repository';
 import { Auth, AuthSchema } from './schemas/auth.schema';
+import { CredentialsService } from './services/credentials.service';
 import { SessionService } from './services/session.service';
 import { TokenService } from './services/token.service';
 import { JwtAccessStrategy } from './strategies/jwt-access.strategy';
@@ -23,6 +24,7 @@ import { RefreshTokenStrategy } from './strategies/jwt-refresh.strategy';
   providers: [
     AuthService,
     AuthRepository,
+    CredentialsService,
     SessionService,
     TokenService,
     JwtAccessStrategy,

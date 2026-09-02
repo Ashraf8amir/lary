@@ -1,5 +1,5 @@
 import { Environment, ResponseMessage } from '@common';
-import { Body, Controller, HttpCode, HttpStatus, Post, Req, Res } from '@nestjs/common';
+import { Body, Controller, HttpCode, HttpStatus, Post, Req, Res, UseGuards } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { CookieOptions, Request, Response } from 'express';
 import { createHash } from 'node:crypto';
@@ -8,6 +8,7 @@ import { AuthService } from './auth.service';
 import { Public } from './decorators/public.decorator';
 import { AuthResponseDto } from './dtos/auth-response.dto';
 import { LoginDto } from './dtos/login.dto';
+import { RefreshTokenGuard } from './guards/refresh.token.guard';
 import { GenerateTokensResult } from './interfaces/auth-result.interface';
 import { SessionContext } from './interfaces/session-context.interface';
 
@@ -32,6 +33,19 @@ export class AuthController {
     const sessionContext = this.extractSessionContext(req);
 
     const result = await this.authService.login(dto, sessionContext);
+
+    return this.respondWithTokens(result, res);
+  }
+
+  @Public()
+  @Post('refresh')
+  @UseGuards(RefreshTokenGuard)
+  @HttpCode(HttpStatus.OK)
+  @ResponseMessage('Token refresh successful')
+  async refresh(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
+    const { refreshToken } = req.user as { refreshToken: string };
+
+    const result = await this.authService.refreshTokens(refreshToken);
 
     return this.respondWithTokens(result, res);
   }
