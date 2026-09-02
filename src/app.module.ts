@@ -24,12 +24,12 @@ import { HealthModule } from '@modules/health/health.module';
 import { AppService } from './app.service';
 import { BusinessException, ErrorCode } from './common';
 import { AuthModule } from './modules/auth/auth.module';
+import { JwtAccessGuard } from './modules/auth/guards/jwt-auth.guard';
 import { UsersModule } from './modules/users/users.module';
 
 @Module({
   imports: [
     ConfigurationModule,
-
     DatabaseModule,
     LoggerModule,
 
@@ -41,7 +41,6 @@ import { UsersModule } from './modules/users/users.module';
         idGenerator: (req) => (req.headers['x-request-id'] as string) ?? uuid(),
       },
     }),
-
     ThrottlerModule.forRoot([
       { name: 'short', ttl: 1000, limit: 3 },
       { name: 'medium', ttl: 10_000, limit: 20 },
@@ -56,6 +55,7 @@ import { UsersModule } from './modules/users/users.module';
     AppService,
 
     { provide: APP_GUARD, useClass: ThrottlerGuard },
+    { provide: APP_GUARD, useClass: JwtAccessGuard },
 
     { provide: APP_INTERCEPTOR, useClass: TimeoutInterceptor },
     { provide: APP_INTERCEPTOR, useClass: ApiResponseInterceptor },
