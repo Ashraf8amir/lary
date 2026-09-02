@@ -214,7 +214,6 @@ Credential data (password hashes, refresh tokens) will reside in a dedicated Aut
 **Plan Commit:**
 
 - Commit 1: `feat: create user mongoose schema and interfaces`
-- Commit 2: `feat: add unique indexes and email normalization hooks`
 
 ---
 
