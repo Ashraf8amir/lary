@@ -811,7 +811,6 @@ Can support single-session logout or revoke-all sessions option.
 **Plan Commit:**
 
 - Commit 1: `feat: implement session revocation in auth repository`
-- Commit 2: `feat: add authenticated logout endpoint`
 
 ---
 
