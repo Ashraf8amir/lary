@@ -70,52 +70,32 @@ By the end of this Sprint, a merchant should be able to:
 
 ---
 
-# Not Included
-
-The following are intentionally outside this Sprint:
-
-- Roles
-- Permissions
-- Admin authorization
-- RBAC
-- Merchant dashboard UI
-- Analytics
-- Chatbot
-- Product synchronization
-- Cart operations
-- Checkout
-- Orders
-
-Authorization/permissions can be introduced later when the product requires them.
-
----
-
 # Authentication Architecture
 
 The authentication architecture is based on:
 
 User
-    ↓
+↓
 Email + Password
-    ↓
+↓
 Login
-    ↓
+↓
 Access Token + Refresh Token
-    ↓
+↓
 Dashboard
-    ↓
+↓
 Authenticated API Requests
 
 When the access token expires:
 
 Dashboard
-    ↓
+↓
 Refresh Token
-    ↓
+↓
 Backend
-    ↓
+↓
 New Access Token
-    ↓
+↓
 Continue Session
 
 ---
@@ -133,6 +113,7 @@ Continue Session
 Create the Users module responsible for managing platform user accounts. The module provides a clear boundary for user-related business logic, DTOs, interfaces, and persistence, allowing it to be consumed cleanly by Authentication without circular dependencies or leaked auth responsibilities.
 
 **Acceptance Criteria:**
+
 - [ ] User module exists.
 - [ ] User service exists.
 - [ ] User persistence has a dedicated location.
@@ -148,12 +129,14 @@ Create the Users module responsible for managing platform user accounts. The mod
 `Sprint 02 — Authentication & Users`
 
 **Dependencies:**
+
 - `Sprint 03 — Salla Integration & OAuth`
 
 **Notes:**
 Keep core user profile management cleanly separated from credential and token concerns.
 
 **Plan Commit:**
+
 - Commit 1: `feat: scaffold user module structure`
 - Commit 2: `feat: register user module in root application module`
 
@@ -170,11 +153,13 @@ Creates the Users module and establishes the baseline structure for user account
 Closes #23
 
 **Changes:**
+
 - Create `UserModule`, `UserService`, and controller scaffolding.
 - Define initial user management DTOs and interfaces.
 - Register `UserModule` in `AppModule`.
 
 **Acceptance Criteria:**
+
 - [ ] All requirements from the related Issue are satisfied.
 - [ ] No unrelated changes are included.
 - [ ] Relevant tests/checks have been completed.
@@ -183,6 +168,7 @@ Closes #23
 Ran build to ensure module dependency injection tree is clean and compiles without errors.
 
 **Checklist:**
+
 - [ ] Code follows project conventions.
 - [ ] No secrets or sensitive information are committed.
 - [ ] Tests were added/updated where applicable.
@@ -202,6 +188,7 @@ Ran build to ensure module dependency injection tree is clean and compiles witho
 Create the Mongoose database model representing a platform user account. The schema represents the merchant owner, references connected Salla stores, manages account status (`active`, `pending`, `suspended`), normalizes email fields, and prevents duplicate records while keeping password hashes out of the user entity.
 
 **Acceptance Criteria:**
+
 - [ ] User schema is created.
 - [ ] Email is normalized (lowercase, trimmed) and indexed uniquely.
 - [ ] User status enum is defined.
@@ -218,12 +205,14 @@ Create the Mongoose database model representing a platform user account. The sch
 `Sprint 02 — Authentication & Users`
 
 **Dependencies:**
+
 - Issue 01 — Create User Module
 
 **Notes:**
 Credential data (password hashes, refresh tokens) will reside in a dedicated Auth model.
 
 **Plan Commit:**
+
 - Commit 1: `feat: create user mongoose schema and interfaces`
 - Commit 2: `feat: add unique indexes and email normalization hooks`
 
@@ -240,12 +229,14 @@ Adds the database schema for platform users and establishes the relationship wit
 Closes #24
 
 **Changes:**
+
 - Create `User` Mongoose schema and interface.
 - Add unique index on `email` field.
 - Add `storeId` reference and user status enum.
 - Register `User` model in `UserModule`.
 
 **Acceptance Criteria:**
+
 - [ ] All requirements from the related Issue are satisfied.
 - [ ] No unrelated changes are included.
 - [ ] Relevant tests/checks have been completed.
@@ -254,6 +245,7 @@ Closes #24
 Verified schema creation in MongoDB and verified unique constraint on email through automated unit tests.
 
 **Checklist:**
+
 - [ ] Code follows project conventions.
 - [ ] No secrets or sensitive information are committed.
 - [ ] Tests were added/updated where applicable.
@@ -273,6 +265,7 @@ Verified schema creation in MongoDB and verified unique constraint on email thro
 Create the authentication module responsible for authenticating users, validating credentials, signing JWTs, managing refresh sessions, and enforcing security policies. The module encapsulates Passport strategies, auth guards, and hashing utilities.
 
 **Acceptance Criteria:**
+
 - [ ] Auth module exists.
 - [ ] Auth service exists.
 - [ ] Authentication controllers have a dedicated location.
@@ -288,12 +281,14 @@ Create the authentication module responsible for authenticating users, validatin
 `Sprint 02 — Authentication & Users`
 
 **Dependencies:**
+
 - Issue 01 — Create User Module
 
 **Notes:**
 Import `UserModule` into `AuthModule` to facilitate user lookups during authentication.
 
 **Plan Commit:**
+
 - Commit 1: `feat: scaffold authentication module and controllers`
 - Commit 2: `feat: configure passport and jwt module dependencies`
 
@@ -310,11 +305,13 @@ Creates the authentication module and establishes clear architectural boundaries
 Closes #25
 
 **Changes:**
+
 - Scaffold `AuthModule`, `AuthController`, and `AuthService`.
 - Configure `@nestjs/jwt` and `@nestjs/passport` module registrations.
 - Setup directory layout for auth guards, strategies, and DTOs.
 
 **Acceptance Criteria:**
+
 - [ ] All requirements from the related Issue are satisfied.
 - [ ] No unrelated changes are included.
 - [ ] Relevant tests/checks have been completed.
@@ -323,6 +320,7 @@ Closes #25
 Ran build to ensure module dependency graph is valid without circular dependencies.
 
 **Checklist:**
+
 - [ ] Code follows project conventions.
 - [ ] No secrets or sensitive information are committed.
 - [ ] Tests were added/updated where applicable.
@@ -342,6 +340,7 @@ Ran build to ensure module dependency graph is valid without circular dependenci
 Create the database persistence model responsible for storing authentication credentials, password hashes (using Argon2/Bcrypt), hashed refresh token sessions, failed login counts, lock expiry times, and password reset tokens.
 
 **Acceptance Criteria:**
+
 - [ ] Auth credentials schema is created with a reference to `userId`.
 - [ ] Password hash is stored securely.
 - [ ] Plain-text passwords and plain-text tokens are never persisted.
@@ -358,12 +357,14 @@ Create the database persistence model responsible for storing authentication cre
 `Sprint 02 — Authentication & Users`
 
 **Dependencies:**
+
 - Issue 03 — Create Auth Module
 
 **Notes:**
 All refresh tokens and reset tokens must be stored as one-way cryptographic hashes.
 
 **Plan Commit:**
+
 - Commit 1: `feat: create auth credentials mongoose schema`
 - Commit 2: `feat: add indexes and query protection for security credentials`
 
@@ -380,11 +381,13 @@ Adds the persistence model for password credentials, active refresh sessions, lo
 Closes #26
 
 **Changes:**
+
 - Create `AuthCredentials` schema and TypeScript interfaces.
 - Add fields for password hash, hashed refresh token list, failed attempts, and lock status.
 - Add `select: false` flag to sensitive fields.
 
 **Acceptance Criteria:**
+
 - [ ] All requirements from the related Issue are satisfied.
 - [ ] No unrelated changes are included.
 - [ ] Relevant tests/checks have been completed.
@@ -393,6 +396,7 @@ Closes #26
 Verified schema indexing and verified that sensitive fields are stripped from standard find queries.
 
 **Checklist:**
+
 - [ ] Code follows project conventions.
 - [ ] No secrets or sensitive information are committed.
 - [ ] Tests were added/updated where applicable.
@@ -412,6 +416,7 @@ Verified schema indexing and verified that sensitive fields are stripped from st
 Implement the user creation workflow that creates a new platform account, associates it with a connected Salla store, validates unique email constraints, and creates corresponding authentication credentials with a securely hashed password.
 
 **Acceptance Criteria:**
+
 - [ ] User creation service method exists.
 - [ ] Email input is normalized and validated.
 - [ ] Duplicate emails are rejected with a conflict error.
@@ -427,6 +432,7 @@ Implement the user creation workflow that creates a new platform account, associ
 `Sprint 02 — Authentication & Users`
 
 **Dependencies:**
+
 - Issue 02 — Create User Schema
 - Issue 04 — Create Auth Schema
 
@@ -434,6 +440,7 @@ Implement the user creation workflow that creates a new platform account, associ
 Use Argon2id or bcrypt with appropriate work factor/salt rounds.
 
 **Plan Commit:**
+
 - Commit 1: `feat: implement password hashing service`
 - Commit 2: `feat: implement atomic user account creation workflow`
 
@@ -450,11 +457,13 @@ Implements user account registration, password hashing, and linking of merchant 
 Closes #27
 
 **Changes:**
+
 - Implement `PasswordService` for secure hashing and verification.
 - Add `createUser` method in `UserService` with email normalization.
 - Link account creation with `AuthCredentials` record.
 
 **Acceptance Criteria:**
+
 - [ ] All requirements from the related Issue are satisfied.
 - [ ] No unrelated changes are included.
 - [ ] Relevant tests/checks have been completed.
@@ -463,6 +472,7 @@ Closes #27
 Ran automated unit tests for account creation, verified unique email collision rejection, and confirmed password hash storage.
 
 **Checklist:**
+
 - [ ] Code follows project conventions.
 - [ ] No secrets or sensitive information are committed.
 - [ ] Tests were added/updated where applicable.
@@ -470,8 +480,6 @@ Ran automated unit tests for account creation, verified unique email collision r
 - [ ] The PR is focused on the related Issue.
 
 ---
-
-## Issue 06 — Set Initial Password
 
 ### Issue (Feature Template)
 
@@ -482,6 +490,7 @@ Ran automated unit tests for account creation, verified unique email collision r
 Allow merchants onboarded via Salla OAuth without a pre-existing password to securely set their dashboard password. The setup mechanism uses a cryptographically secure, short-lived setup token that is invalidated immediately upon successful password creation.
 
 **Acceptance Criteria:**
+
 - [ ] Password setup endpoint (`POST /auth/password/setup`) exists.
 - [ ] User without a password can establish one.
 - [ ] Password complexity rules are enforced.
@@ -497,12 +506,14 @@ Allow merchants onboarded via Salla OAuth without a pre-existing password to sec
 `Sprint 02 — Authentication & Users`
 
 **Dependencies:**
+
 - Issue 05 — Create User Account Flow
 
 **Notes:**
 Provides a seamless onboarding bridge for OAuth merchants entering the platform dashboard.
 
 **Plan Commit:**
+
 - Commit 1: `feat: implement initial password setup token generation`
 - Commit 2: `feat: add password setup endpoint and token consumption`
 
@@ -519,11 +530,13 @@ Allows newly onboarded Salla merchants to securely set their platform dashboard 
 Closes #28
 
 **Changes:**
+
 - Add `POST /auth/password/setup` route and DTO validation.
 - Implement token verification and password initialization service logic.
 - Invalidate setup token upon successful password assignment.
 
 **Acceptance Criteria:**
+
 - [ ] All requirements from the related Issue are satisfied.
 - [ ] No unrelated changes are included.
 - [ ] Relevant tests/checks have been completed.
@@ -532,6 +545,7 @@ Closes #28
 Executed test cases for valid setup token, expired token, and attempted reuse on an account that already has a password.
 
 **Checklist:**
+
 - [ ] Code follows project conventions.
 - [ ] No secrets or sensitive information are committed.
 - [ ] Tests were added/updated where applicable.
@@ -540,7 +554,7 @@ Executed test cases for valid setup token, expired token, and attempted reuse on
 
 ---
 
-## Issue 07 — Implement User Login
+## Issue 06 — Implement User Login
 
 ### Issue (Feature Template)
 
@@ -551,6 +565,7 @@ Executed test cases for valid setup token, expired token, and attempted reuse on
 Implement password-based authentication endpoint (`POST /auth/login`). Validates email and password, checks account lock status, verifies credentials using constant-time comparisons, resets failed login counters upon success, generates JWT access and refresh tokens, and persists the refresh session.
 
 **Acceptance Criteria:**
+
 - [ ] Endpoint `POST /auth/login` exists.
 - [ ] Incoming email is normalized and validated.
 - [ ] Password hash is verified securely.
@@ -568,6 +583,7 @@ Implement password-based authentication endpoint (`POST /auth/login`). Validates
 `Sprint 02 — Authentication & Users`
 
 **Dependencies:**
+
 - Issue 04 — Create Auth Schema
 - Issue 05 — Create User Account Flow
 
@@ -575,6 +591,7 @@ Implement password-based authentication endpoint (`POST /auth/login`). Validates
 Return access token in payload; handle refresh token securely via response body or httpOnly cookie.
 
 **Plan Commit:**
+
 - Commit 1: `feat: implement login credential validation and attempt tracking`
 - Commit 2: `feat: add login endpoint with token pair generation`
 
@@ -591,11 +608,13 @@ Implements password login, credential verification, failed attempt tracking, and
 Closes #29
 
 **Changes:**
+
 - Add `POST /auth/login` controller endpoint and `LoginDto`.
 - Implement `validateUserCredentials` in `AuthService`.
 - Issue JWT access token and refresh token session.
 
 **Acceptance Criteria:**
+
 - [ ] All requirements from the related Issue are satisfied.
 - [ ] No unrelated changes are included.
 - [ ] Relevant tests/checks have been completed.
@@ -604,6 +623,7 @@ Closes #29
 Tested valid login, invalid password, nonexistent email, and locked user states; verified token issuance.
 
 **Checklist:**
+
 - [ ] Code follows project conventions.
 - [ ] No secrets or sensitive information are committed.
 - [ ] Tests were added/updated where applicable.
@@ -612,7 +632,7 @@ Tested valid login, invalid password, nonexistent email, and locked user states;
 
 ---
 
-## Issue 08 — Implement JWT Authentication
+## Issue 07 — Implement JWT Authentication
 
 ### Issue (Feature Template)
 
@@ -623,6 +643,7 @@ Tested valid login, invalid password, nonexistent email, and locked user states;
 Implement JWT access token strategy and authentication guard (`JwtAuthGuard`) for protecting API routes. Validates token signature, expiration, and payload claims, attaching the authenticated user context to incoming HTTP requests.
 
 **Acceptance Criteria:**
+
 - [ ] JWT signing and verification are configured via environment secrets.
 - [ ] Token expiration is enforced (e.g., 15 minutes).
 - [ ] `PassportJwtStrategy` extracts Bearer tokens from authorization headers.
@@ -637,6 +658,7 @@ Implement JWT access token strategy and authentication guard (`JwtAuthGuard`) fo
 `Sprint 02 — Authentication & Users`
 
 **Dependencies:**
+
 - Issue 03 — Create Auth Module
 - Issue 07 — Implement User Login
 
@@ -644,6 +666,7 @@ Implement JWT access token strategy and authentication guard (`JwtAuthGuard`) fo
 Keep JWT payload minimal (`sub`, `email`, `storeId`).
 
 **Plan Commit:**
+
 - Commit 1: `feat: implement passport jwt strategy and jwt guard`
 - Commit 2: `feat: configure access token signing and token extractor`
 
@@ -660,11 +683,13 @@ Adds JWT access token authentication strategy, guards, and request user context 
 Closes #30
 
 **Changes:**
+
 - Implement `JwtStrategy` and `JwtAuthGuard`.
 - Configure JWT options from centralized configuration.
 - Add `@CurrentUser()` decorator to extract user from request context.
 
 **Acceptance Criteria:**
+
 - [ ] All requirements from the related Issue are satisfied.
 - [ ] No unrelated changes are included.
 - [ ] Relevant tests/checks have been completed.
@@ -673,6 +698,7 @@ Closes #30
 Applied guard to test endpoint; verified success with valid token and rejection with missing, tampered, or expired tokens.
 
 **Checklist:**
+
 - [ ] Code follows project conventions.
 - [ ] No secrets or sensitive information are committed.
 - [ ] Tests were added/updated where applicable.
@@ -681,7 +707,7 @@ Applied guard to test endpoint; verified success with valid token and rejection 
 
 ---
 
-## Issue 09 — Implement Refresh Token Flow
+## Issue 08 — Implement Refresh Token Flow
 
 ### Issue (Feature Template)
 
@@ -692,6 +718,7 @@ Applied guard to test endpoint; verified success with valid token and rejection 
 Implement refresh token endpoint (`POST /auth/refresh`) using token rotation. Validates incoming refresh token against stored hash, revokes used refresh token, issues a new access token and a new refresh token, and detects token reuse to invalidate compromised sessions.
 
 **Acceptance Criteria:**
+
 - [ ] Endpoint `POST /auth/refresh` exists.
 - [ ] Incoming refresh token is cryptographically verified against persisted hash.
 - [ ] Expired or revoked refresh tokens are rejected.
@@ -706,12 +733,14 @@ Implement refresh token endpoint (`POST /auth/refresh`) using token rotation. Va
 `Sprint 02 — Authentication & Users`
 
 **Dependencies:**
+
 - Issue 08 — Implement JWT Authentication
 
 **Notes:**
 Ensure rotation is atomic to prevent race conditions during concurrent client refresh calls.
 
 **Plan Commit:**
+
 - Commit 1: `feat: implement refresh token hashing and rotation service`
 - Commit 2: `feat: add refresh token endpoint and reuse detection`
 
@@ -728,11 +757,13 @@ Implements refresh-token rotation, reuse detection, and session renewal.
 Closes #31
 
 **Changes:**
+
 - Add `POST /auth/refresh` route and validation DTO.
 - Implement token rotation logic in `AuthService`.
 - Add token reuse detection mechanism to revoke sessions on replay attempts.
 
 **Acceptance Criteria:**
+
 - [ ] All requirements from the related Issue are satisfied.
 - [ ] No unrelated changes are included.
 - [ ] Relevant tests/checks have been completed.
@@ -741,6 +772,7 @@ Closes #31
 Tested normal token rotation, expired token failure, and simulated token reuse to verify full session revocation.
 
 **Checklist:**
+
 - [ ] Code follows project conventions.
 - [ ] No secrets or sensitive information are committed.
 - [ ] Tests were added/updated where applicable.
@@ -749,7 +781,7 @@ Tested normal token rotation, expired token failure, and simulated token reuse t
 
 ---
 
-## Issue 10 — Implement Logout
+## Issue 09 — Implement Logout
 
 ### Issue (Feature Template)
 
@@ -760,6 +792,7 @@ Tested normal token rotation, expired token failure, and simulated token reuse t
 Implement logout endpoint (`POST /auth/logout`) for authenticated users. The endpoint invalidates and removes the current active refresh token/session from database storage, preventing subsequent token renewals.
 
 **Acceptance Criteria:**
+
 - [ ] Protected endpoint `POST /auth/logout` exists.
 - [ ] Active session is identified from the user context or refresh token.
 - [ ] Refresh token hash is removed/revoked from the database.
@@ -774,12 +807,14 @@ Implement logout endpoint (`POST /auth/logout`) for authenticated users. The end
 `Sprint 02 — Authentication & Users`
 
 **Dependencies:**
+
 - Issue 09 — Implement Refresh Token Flow
 
 **Notes:**
 Can support single-session logout or revoke-all sessions option.
 
 **Plan Commit:**
+
 - Commit 1: `feat: implement session revocation in auth repository`
 - Commit 2: `feat: add authenticated logout endpoint`
 
@@ -796,11 +831,13 @@ Implements authenticated logout and refresh session invalidation.
 Closes #32
 
 **Changes:**
+
 - Add `POST /auth/logout` endpoint guarded by `JwtAuthGuard`.
 - Implement `logout` method in `AuthService` to revoke target refresh token.
 - Add unit tests verifying session deletion.
 
 **Acceptance Criteria:**
+
 - [ ] All requirements from the related Issue are satisfied.
 - [ ] No unrelated changes are included.
 - [ ] Relevant tests/checks have been completed.
@@ -809,6 +846,7 @@ Closes #32
 Executed logout and confirmed subsequent `/auth/refresh` calls using the previous token fail with `401 Unauthorized`.
 
 **Checklist:**
+
 - [ ] Code follows project conventions.
 - [ ] No secrets or sensitive information are committed.
 - [ ] Tests were added/updated where applicable.
@@ -817,7 +855,7 @@ Executed logout and confirmed subsequent `/auth/refresh` calls using the previou
 
 ---
 
-## Issue 11 — Add Current User Endpoint
+## Issue 10 — Add Current User Endpoint
 
 ### Issue (Feature Template)
 
@@ -828,6 +866,7 @@ Executed logout and confirmed subsequent `/auth/refresh` calls using the previou
 Create protected endpoint (`GET /auth/me`) that returns the profile data and store association of the currently authenticated merchant. Enables dashboard state rehydration on client startup.
 
 **Acceptance Criteria:**
+
 - [ ] Endpoint `GET /auth/me` exists and requires JWT authentication.
 - [ ] Authenticated user is extracted from JWT claims.
 - [ ] User profile information (`id`, `name`, `email`, `storeId`, `status`) is returned.
@@ -841,12 +880,14 @@ Create protected endpoint (`GET /auth/me`) that returns the profile data and sto
 `Sprint 02 — Authentication & Users`
 
 **Dependencies:**
+
 - Issue 08 — Implement JWT Authentication
 
 **Notes:**
 Return clean DTO wrapped in consistent JSON response structure.
 
 **Plan Commit:**
+
 - Commit 1: `feat: add get me service query`
 - Commit 2: `feat: add get current user endpoint and serialization dto`
 
@@ -863,11 +904,13 @@ Adds the authenticated user profile endpoint required by the dashboard.
 Closes #33
 
 **Changes:**
+
 - Add `GET /auth/me` route in `AuthController`.
 - Implement user profile serialization DTO excluding sensitive fields.
 - Integrate `@CurrentUser()` decorator with endpoint handler.
 
 **Acceptance Criteria:**
+
 - [ ] All requirements from the related Issue are satisfied.
 - [ ] No unrelated changes are included.
 - [ ] Relevant tests/checks have been completed.
@@ -876,6 +919,7 @@ Closes #33
 Called `/auth/me` with valid JWT and confirmed user profile fields are returned without credentials.
 
 **Checklist:**
+
 - [ ] Code follows project conventions.
 - [ ] No secrets or sensitive information are committed.
 - [ ] Tests were added/updated where applicable.
@@ -883,8 +927,6 @@ Called `/auth/me` with valid JWT and confirmed user profile fields are returned 
 - [ ] The PR is focused on the related Issue.
 
 ---
-
-## Issue 12 — Implement Password Change
 
 ### Issue (Feature Template)
 
@@ -895,6 +937,7 @@ Called `/auth/me` with valid JWT and confirmed user profile fields are returned 
 Implement password change endpoint (`PATCH /auth/password`) for authenticated users. Verifies the user's current password, validates new password strength, updates the password hash, and invalidates other active refresh sessions.
 
 **Acceptance Criteria:**
+
 - [ ] Protected endpoint `PATCH /auth/password` exists.
 - [ ] Current password is verified against stored hash before updating.
 - [ ] Incorrect current password throws `400 Bad Request` or `401 Unauthorized`.
@@ -910,6 +953,7 @@ Implement password change endpoint (`PATCH /auth/password`) for authenticated us
 `Sprint 02 — Authentication & Users`
 
 **Dependencies:**
+
 - Issue 07 — Implement User Login
 - Issue 09 — Implement Refresh Token Flow
 
@@ -917,6 +961,7 @@ Implement password change endpoint (`PATCH /auth/password`) for authenticated us
 Ensure previous password and new password are not identical.
 
 **Plan Commit:**
+
 - Commit 1: `feat: implement password verification and update logic`
 - Commit 2: `feat: add change password endpoint with session invalidation`
 
@@ -933,11 +978,13 @@ Allows authenticated users to securely update their password while invalidating 
 Closes #34
 
 **Changes:**
+
 - Add `PATCH /auth/password` endpoint and `ChangePasswordDto`.
 - Implement password verification, hashing, and credential update in `AuthService`.
 - Invalidate all existing refresh tokens for the account.
 
 **Acceptance Criteria:**
+
 - [ ] All requirements from the related Issue are satisfied.
 - [ ] No unrelated changes are included.
 - [ ] Relevant tests/checks have been completed.
@@ -946,6 +993,7 @@ Closes #34
 Tested changing password with correct and incorrect current password; confirmed old sessions could no longer refresh.
 
 **Checklist:**
+
 - [ ] Code follows project conventions.
 - [ ] No secrets or sensitive information are committed.
 - [ ] Tests were added/updated where applicable.
@@ -953,8 +1001,6 @@ Tested changing password with correct and incorrect current password; confirmed 
 - [ ] The PR is focused on the related Issue.
 
 ---
-
-## Issue 13 — Request Password Reset
 
 ### Issue (Feature Template)
 
@@ -965,6 +1011,7 @@ Tested changing password with correct and incorrect current password; confirmed 
 Implement forgot password endpoint (`POST /auth/password/forgot`). Generates a cryptographically random, short-lived reset token, stores a hash of the token with expiration in the database, and returns a generic success response to prevent email enumeration.
 
 **Acceptance Criteria:**
+
 - [ ] Public endpoint `POST /auth/password/forgot` exists.
 - [ ] Accepts email and normalizes it.
 - [ ] Response returns identical generic success message regardless of whether the email exists.
@@ -979,12 +1026,14 @@ Implement forgot password endpoint (`POST /auth/password/forgot`). Generates a c
 `Sprint 02 — Authentication & Users`
 
 **Dependencies:**
+
 - Issue 04 — Create Authentication Credentials Schema
 
 **Notes:**
 Prepare email notification dispatch hook/event.
 
 **Plan Commit:**
+
 - Commit 1: `feat: implement secure reset token generator and hashing`
 - Commit 2: `feat: add forgot password endpoint with generic response`
 
@@ -1001,11 +1050,13 @@ Implements the password reset request flow using secure, short-lived reset token
 Closes #35
 
 **Changes:**
+
 - Add `POST /auth/password/forgot` endpoint and `ForgotPasswordDto`.
 - Implement token generation and token hash persistence in `AuthService`.
 - Enforce constant response payload for security against user enumeration.
 
 **Acceptance Criteria:**
+
 - [ ] All requirements from the related Issue are satisfied.
 - [ ] No unrelated changes are included.
 - [ ] Relevant tests/checks have been completed.
@@ -1014,6 +1065,7 @@ Closes #35
 Sent requests with registered and unregistered emails; verified identical responses and verified token hash creation in DB.
 
 **Checklist:**
+
 - [ ] Code follows project conventions.
 - [ ] No secrets or sensitive information are committed.
 - [ ] Tests were added/updated where applicable.
@@ -1021,8 +1073,6 @@ Sent requests with registered and unregistered emails; verified identical respon
 - [ ] The PR is focused on the related Issue.
 
 ---
-
-## Issue 14 — Complete Password Reset
 
 ### Issue (Feature Template)
 
@@ -1033,6 +1083,7 @@ Sent requests with registered and unregistered emails; verified identical respon
 Implement password reset completion endpoint (`POST /auth/password/reset`). Validates the plain reset token against the stored token hash, verifies expiration, updates the password hash, invalidates the used reset token, and terminates all active sessions.
 
 **Acceptance Criteria:**
+
 - [ ] Public endpoint `POST /auth/password/reset` exists.
 - [ ] Reset token is verified against stored hash.
 - [ ] Expired or invalid reset tokens return `400 Bad Request`.
@@ -1048,12 +1099,14 @@ Implement password reset completion endpoint (`POST /auth/password/reset`). Vali
 `Sprint 02 — Authentication & Users`
 
 **Dependencies:**
+
 - Issue 13 — Request Password Reset
 
 **Notes:**
 Ensures complete token invalidation upon successful reset.
 
 **Plan Commit:**
+
 - Commit 1: `feat: implement reset token verification and password reset logic`
 - Commit 2: `feat: add reset password endpoint with session cleanup`
 
@@ -1070,11 +1123,13 @@ Completes the secure password reset flow with token consumption and session revo
 Closes #36
 
 **Changes:**
+
 - Add `POST /auth/password/reset` route and `ResetPasswordDto`.
 - Implement token validation, credential update, and token invalidation in `AuthService`.
 - Invalidate all active sessions for the user.
 
 **Acceptance Criteria:**
+
 - [ ] All requirements from the related Issue are satisfied.
 - [ ] No unrelated changes are included.
 - [ ] Relevant tests/checks have been completed.
@@ -1083,6 +1138,7 @@ Closes #36
 Tested reset with valid token, expired token, reused token, and confirmed successful login with the new password.
 
 **Checklist:**
+
 - [ ] Code follows project conventions.
 - [ ] No secrets or sensitive information are committed.
 - [ ] Tests were added/updated where applicable.
@@ -1090,8 +1146,6 @@ Tested reset with valid token, expired token, reused token, and confirmed succes
 - [ ] The PR is focused on the related Issue.
 
 ---
-
-## Issue 15 — Implement Login Security Controls
 
 ### Issue (Feature Template)
 
@@ -1102,6 +1156,7 @@ Tested reset with valid token, expired token, reused token, and confirmed succes
 Implement defense-in-depth security controls around login attempts. Tracks consecutive failed attempts, locks the account when a configurable threshold is reached (e.g., 5 failed attempts locks for 15 minutes), handles automatic lock expiration, and audits security events safely without logging passwords.
 
 **Acceptance Criteria:**
+
 - [ ] Failed login attempts increment consecutive failure counter.
 - [ ] Account is locked when threshold is exceeded (`maxFailedAttempts`).
 - [ ] Lock duration is configurable via environment variables (`lockDurationMinutes`).
@@ -1116,12 +1171,14 @@ Implement defense-in-depth security controls around login attempts. Tracks conse
 `Sprint 02 — Authentication & Users`
 
 **Dependencies:**
+
 - Issue 07 — Implement User Login
 
 **Notes:**
 Use centralized environment configuration for lock thresholds.
 
 **Plan Commit:**
+
 - Commit 1: `feat: implement account lockout logic and failed attempts tracker`
 - Commit 2: `feat: add security event audit logging without credential leaks`
 
@@ -1138,11 +1195,13 @@ Adds login attempt tracking, configurable account lockout, and sanitized securit
 Closes #37
 
 **Changes:**
+
 - Implement lockout checking and failure increment in `AuthService`.
 - Add environment options for lock threshold and duration.
 - Add structured security audit logs for lock/unlock and failure events.
 
 **Acceptance Criteria:**
+
 - [ ] All requirements from the related Issue are satisfied.
 - [ ] No unrelated changes are included.
 - [ ] Relevant tests/checks have been completed.
@@ -1151,6 +1210,7 @@ Closes #37
 Simulated repeated failed logins to trigger lock state; confirmed lock prevented authentication until timeout elapsed.
 
 **Checklist:**
+
 - [ ] Code follows project conventions.
 - [ ] No secrets or sensitive information are committed.
 - [ ] Tests were added/updated where applicable.
@@ -1158,8 +1218,6 @@ Simulated repeated failed logins to trigger lock state; confirmed lock prevented
 - [ ] The PR is focused on the related Issue.
 
 ---
-
-## Issue 16 — Add Authentication and User Tests
 
 ### Issue (Feature Template)
 
@@ -1170,6 +1228,7 @@ Simulated repeated failed logins to trigger lock state; confirmed lock prevented
 Add comprehensive automated unit and integration tests covering user creation, login, JWT validation, refresh token rotation, token reuse detection, logout, password change, password reset, and account lockout.
 
 **Acceptance Criteria:**
+
 - [ ] User creation and duplicate prevention tests pass.
 - [ ] Login credential verification and attempt counters are tested.
 - [ ] JWT authentication guard and claim extraction are tested.
@@ -1186,12 +1245,14 @@ Add comprehensive automated unit and integration tests covering user creation, l
 `Sprint 02 — Authentication & Users`
 
 **Dependencies:**
+
 - All implementation Issues in Sprint 02
 
 **Notes:**
 Use NestJS testing module and in-memory MongoDB / mock repositories.
 
 **Plan Commit:**
+
 - Commit 1: `test: add user and auth service unit tests`
 - Commit 2: `test: add authentication e2e test suite covering full token lifecycle`
 
@@ -1208,11 +1269,13 @@ Adds automated unit and E2E test suites covering user management, authentication
 Closes #38
 
 **Changes:**
+
 - Add `test/auth/auth.e2e-spec.ts`.
 - Add unit tests for `UserService`, `AuthService`, and `PasswordService`.
 - Add tests for lockout and token reuse detection logic.
 
 **Acceptance Criteria:**
+
 - [ ] All requirements from the related Issue are satisfied.
 - [ ] No unrelated changes are included.
 - [ ] Relevant tests/checks have been completed.
@@ -1221,6 +1284,7 @@ Closes #38
 Ran `npm run test` and `npm run test:e2e` to verify 100% passing suites across all auth scenarios.
 
 **Checklist:**
+
 - [ ] Code follows project conventions.
 - [ ] No secrets or sensitive information are committed.
 - [ ] Tests were added/updated where applicable.
@@ -1229,7 +1293,7 @@ Ran `npm run test` and `npm run test:e2e` to verify 100% passing suites across a
 
 ---
 
-## Issue 17 — Document Authentication and User Flows
+## Issue 11 — Document Authentication and User Flows
 
 ### Issue (Documentation Template)
 
@@ -1240,6 +1304,7 @@ Ran `npm run test` and `npm run test:e2e` to verify 100% passing suites across a
 Document the authentication architecture, token lifecycle, password management, account lockout policies, and API endpoints for developers and dashboard integrators.
 
 **Scope:**
+
 - Authentication architecture diagrams and token rotation sequence.
 - API endpoint specifications (`/auth/login`, `/auth/refresh`, `/auth/logout`, `/auth/me`, `/auth/password/*`).
 - Environment variables checklist for JWT secrets and lockout configs.
@@ -1253,12 +1318,14 @@ Document the authentication architecture, token lifecycle, password management, 
 `Sprint 02 — Authentication & Users`
 
 **Dependencies:**
+
 - All implementation Issues in Sprint 02
 
 **Notes:**
 Place documentation in `docs/auth/authentication.md`.
 
 **Plan Commit:**
+
 - Commit 1: `docs: document authentication architecture and token lifecycle`
 - Commit 2: `docs: document auth api endpoints and security controls`
 
@@ -1275,11 +1342,13 @@ Adds comprehensive developer and integration documentation covering authenticati
 Closes #39
 
 **Changes:**
+
 - Create `docs/auth/authentication.md`.
 - Document token rotation and lockout policies.
 - Document all `/auth/*` endpoints with request and response schemas.
 
 **Acceptance Criteria:**
+
 - [ ] All requirements from the related Issue are satisfied.
 - [ ] No unrelated changes are included.
 - [ ] Relevant tests/checks have been completed.
@@ -1288,6 +1357,7 @@ Closes #39
 Reviewed markdown rendering and validated request/response payload examples against actual controllers.
 
 **Checklist:**
+
 - [ ] Code follows project conventions.
 - [ ] No secrets or sensitive information are committed.
 - [ ] Tests were added/updated where applicable.
