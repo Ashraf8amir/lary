@@ -1319,8 +1319,7 @@ Place documentation in `docs/auth/authentication.md`.
 
 **Plan Commit:**
 
-- Commit 1: `docs: document authentication architecture and token lifecycle`
-- Commit 2: `docs: document auth api endpoints and security controls`
+- Commit 1: `docs: document auth api endpoints and security controls`
 
 ---
 
