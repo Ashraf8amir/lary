@@ -21,9 +21,12 @@ import { TimeoutInterceptor } from '@common/interceptors/timeout.interceptor';
 import { LoggerMiddleware } from '@common/middlewares/logger.middleware';
 
 import { HealthModule } from '@modules/health/health.module';
+import { ThrottlerStorageRedisService } from '@nest-lab/throttler-storage-redis';
+import Redis from 'ioredis';
 import { AppService } from './app.service';
 import { BusinessException, ErrorCode } from './common';
 import { CacheModule } from './infrastructure/cache/cache.module';
+import { REDIS_CLIENT } from './infrastructure/redis/redis.constants';
 import { RedisModule } from './infrastructure/redis/redis.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { JwtAccessGuard } from './modules/auth/guards/jwt-auth.guard';
@@ -45,11 +48,18 @@ import { UsersModule } from './modules/users/users.module';
         idGenerator: (req) => (req.headers['x-request-id'] as string) ?? uuid(),
       },
     }),
-    ThrottlerModule.forRoot([
-      { name: 'short', ttl: 1000, limit: 3 },
-      { name: 'medium', ttl: 10_000, limit: 20 },
-      { name: 'long', ttl: 60_000, limit: 100 },
-    ]),
+    ThrottlerModule.forRootAsync({
+      imports: [RedisModule],
+      inject: [REDIS_CLIENT],
+      useFactory: (redisClient: Redis) => ({
+        throttlers: [
+          { name: 'short', ttl: 1000, limit: 3 },
+          { name: 'medium', ttl: 10000, limit: 20 },
+          { name: 'long', ttl: 60000, limit: 100 },
+        ],
+        storage: new ThrottlerStorageRedisService(redisClient),
+      }),
+    }),
 
     HealthModule,
     UsersModule,
