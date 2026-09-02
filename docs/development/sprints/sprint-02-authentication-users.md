@@ -439,8 +439,7 @@ Use Argon2id or bcrypt with appropriate work factor/salt rounds.
 
 **Plan Commit:**
 
-- Commit 1: `feat: implement password hashing service`
-- Commit 2: `feat: implement atomic user account creation workflow`
+- Commit 1: `feat: implement atomic user account creation workflow`
 
 ---
 
