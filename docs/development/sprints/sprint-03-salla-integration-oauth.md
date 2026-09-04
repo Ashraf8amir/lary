@@ -254,7 +254,6 @@ Add field transformation or select exclusion to avoid accidental token leakage i
 **Plan Commit:**
 
 - Commit 1: `feat: create salla integration mongoose schema`
-- Commit 2: `feat: add indexes and select protection for credentials`
 
 ---
 
