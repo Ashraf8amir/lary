@@ -6,6 +6,9 @@ export const CACHE_KEYS = {
   AUTH_ACCESS_BLACKLIST: (jti: string) => `auth:blacklist:access:${jti}`,
   AUTH_FAILED_ATTEMPTS: (identifier: string) => `auth:failed_attempts:${identifier}`,
   AUTH_LOCKOUT: (identifier: string) => `auth:lockout:${identifier}`,
+
+  OAUTH_STATE: (state: string) => `salla:oauth:state:${state}`,
+  TOKEN_LOCK: (integrationId: string) => `salla:token:lock:${integrationId}`,
 } as const;
 
 export const CACHE_TTL = {
@@ -17,4 +20,7 @@ export const CACHE_TTL = {
   FAILED_LOGIN_WINDOW: 60 * 15,
   ACCOUNT_LOCK: 60 * 15,
   TWO_FACTOR_TEMP: 60 * 10,
+
+  OAUTH_STATE: 600,
+  TOKEN_LOCK: 30,
 } as const;

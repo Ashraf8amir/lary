@@ -31,6 +31,6 @@ import { RefreshTokenStrategy } from './strategies/jwt-refresh.strategy';
     RefreshTokenStrategy,
     RefreshTokenGuard,
   ],
-  exports: [TokenService, SessionService],
+  exports: [TokenService, SessionService, AuthService],
 })
 export class AuthModule {}

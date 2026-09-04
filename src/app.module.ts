@@ -26,6 +26,7 @@ import Redis from 'ioredis';
 import { AppService } from './app.service';
 import { BusinessException, ErrorCode } from './common';
 import { CacheModule } from './infrastructure/cache/cache.module';
+import { EncryptionModule } from './infrastructure/encryption/encryption.module';
 import { REDIS_CLIENT } from './infrastructure/redis/redis.constants';
 import { RedisModule } from './infrastructure/redis/redis.module';
 import { AuthModule } from './modules/auth/auth.module';
@@ -40,6 +41,7 @@ import { UsersModule } from './modules/users/users.module';
     LoggerModule,
     RedisModule,
     CacheModule,
+    EncryptionModule,
 
     ClsModule.forRoot({
       global: true,

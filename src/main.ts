@@ -13,6 +13,7 @@ async function bootstrap() {
 
   const app = await NestFactory.create(AppModule, {
     bufferLogs: true,
+    rawBody: true,
   });
 
   app.useLogger(app.get(WINSTON_MODULE_NEST_PROVIDER));
@@ -27,6 +28,8 @@ async function bootstrap() {
     origin: isProduction && allowedOrigins ? allowedOrigins.split(',').map((o) => o.trim()) : true,
     credentials: true,
   });
+
+  app.getHttpAdapter().getInstance().set('trust proxy', 1);
 
   app.use(helmet({ contentSecurityPolicy: isProduction ? undefined : false }));
   app.use(compression());

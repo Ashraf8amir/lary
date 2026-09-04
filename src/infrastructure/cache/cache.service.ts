@@ -105,4 +105,16 @@ export class CacheService {
       return -2;
     }
   }
+
+  async setIfNotExists(key: string, value: string, ttlSeconds: number): Promise<boolean> {
+    if (ttlSeconds <= 0) return false;
+
+    try {
+      const result = await this.redisService.getClient().set(key, value, 'EX', ttlSeconds, 'NX');
+      return result === 'OK';
+    } catch (error) {
+      this.logger.error(`Failed to SETNX cache key "${key}":`, error);
+      return false;
+    }
+  }
 }
