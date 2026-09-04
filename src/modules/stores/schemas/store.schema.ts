@@ -1,5 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { HydratedDocument } from 'mongoose';
+import { HydratedDocument, Types } from 'mongoose';
 import { StorePlan } from '../enums/store-plan.enum';
 import { StoreStatus } from '../enums/store-status.enum';
 
@@ -21,18 +21,22 @@ export class Store {
   @Prop({
     type: String,
     required: true,
-    unique: true,
-    trim: true,
-  })
-  sallaId!: string;
-
-  @Prop({
-    type: String,
-    required: true,
     trim: true,
     maxLength: 200,
   })
   name!: string;
+
+  // Set once at creation time (whoever installs/registers the store).
+  // Intentionally omitted from UpdateStoreDto — ownership transfer should
+  // be its own explicit, audited operation, never a side effect of a
+  // generic PATCH.
+  @Prop({
+    type: Types.ObjectId,
+    required: true,
+    ref: 'User',
+    index: true,
+  })
+  ownerId!: Types.ObjectId;
 
   @Prop({
     type: String,

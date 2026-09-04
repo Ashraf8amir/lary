@@ -328,8 +328,7 @@ State should have a short TTL (e.g., 5–10 minutes).
 
 **Plan Commit:**
 
-- Commit 1: `feat: implement oauth authorization url generator`
-- Commit 2: `feat: add oauth state generation and redirect endpoint`
+- Commit 1: `feat: add oauth state generation and redirect endpoint`
 
 ---
 

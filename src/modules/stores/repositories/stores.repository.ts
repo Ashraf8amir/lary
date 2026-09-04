@@ -21,29 +21,22 @@ export class StoresRepository {
     return this.storeModel.findById(id).exec();
   }
 
-  async findBySallaId(sallaId: string): Promise<StoreDocument | null> {
-    return this.storeModel.findOne({ sallaId: String(sallaId).trim() }).exec();
+  async findByIdAndOwner(id: string, ownerId: string): Promise<StoreDocument | null> {
+    if (!isValidObjectId(id) || !isValidObjectId(ownerId)) return null;
+    return this.storeModel.findOne({ _id: id, ownerId }).exec();
+  }
+
+  async existsWithOwner(id: string, ownerId: string): Promise<boolean> {
+    if (!isValidObjectId(id) || !isValidObjectId(ownerId)) return false;
+    const count = await this.storeModel.countDocuments({ _id: id, ownerId }).exec();
+    return count > 0;
   }
 
   async update(id: string, data: UpdateStoreDto): Promise<StoreDocument | null> {
     if (!isValidObjectId(id)) return null;
     return this.storeModel
-      .findByIdAndUpdate(id, { $set: data }, { new: true, runValidators: true })
+      .findByIdAndUpdate(id, { $set: data }, { returnDocument: 'after', runValidators: true })
       .exec();
-  }
-
-  async upsertBySallaId(sallaId: string, data: Partial<CreateStoreDto>): Promise<StoreDocument> {
-    return this.storeModel
-      .findOneAndUpdate(
-        { sallaId: String(sallaId).trim() },
-        { $set: data },
-        { new: true, upsert: true, runValidators: true },
-      )
-      .exec();
-  }
-
-  async existsBySallaId(sallaId: string): Promise<boolean> {
-    return (await this.storeModel.exists({ sallaId: String(sallaId).trim() })) !== null;
   }
 
   async delete(id: string): Promise<boolean> {
