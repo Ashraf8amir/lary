@@ -474,7 +474,6 @@ Implement idempotent persistence logic for Salla store integrations. The service
 **Dependencies:**
 
 - Issue 03 — Create Integration Schema
-- Issue 05 — Implement Salla OAuth Callback
 
 **Notes:**
 Use atomic Mongoose `findOneAndUpdate` with `upsert: true`.
@@ -596,156 +595,7 @@ Executed mock API calls through `SallaApiClient` to verify header injection and 
 
 ---
 
-## Issue 07 — Implement Integration Status
-
-### Issue (Feature Template)
-
-**Title:** `[Feature]: Add Salla integration status management`  
-**Labels:** `type:feature`, `priority:medium`, `area:integration`, `area:salla`
-
-**Description:**
-Implement status query and management capabilities for Salla integrations. The platform must expose status indicators (`connected`, `disconnected`, `expired`) to allow the merchant dashboard to determine whether a store connection is healthy and active.
-
-**Acceptance Criteria:**
-
-- [ ] Integration status enum and state transitions are defined.
-- [ ] Query service returns current integration status without exposing credentials.
-- [ ] Failed or revoked integrations reflect correct non-connected states.
-- [ ] Integration status endpoint or internal service method is available.
-- [ ] Status changes are persisted and audited via timestamp fields.
-
-**Branch Name:**
-`feature/salla-integration-status`
-
-**Milestone:**
-`Sprint 03 — Salla Integration & OAuth`
-
-**Dependencies:**
-
-- Issue 03 — Create Integration Schema
-- Issue 06 — Implement Integration Upsert
-
-**Notes:**
-Expose a lightweight DTO containing `status`, `storeName`, `connectedAt`, and `lastSyncedAt`.
-
-**Plan Commit:**
-
-- Commit 1: `feat: add integration status query service`
-- Commit 2: `feat: add integration status dto and response mapper`
-
----
-
-### Pull Request 08
-
-**Title:** `feat: add Salla integration status management`
-
-**Summary:**
-Adds integration lifecycle status handling and safe metadata queries for Salla connections.
-
-**Related Issue:**
-Closes #18
-
-**Changes:**
-
-- Add `getIntegrationStatus` method in `SallaService`.
-- Create clean `IntegrationStatusResponseDto`.
-- Filter out all sensitive tokens from integration status queries.
-
-**Acceptance Criteria:**
-
-- [ ] All requirements from the related Issue are satisfied.
-- [ ] No unrelated changes are included.
-- [ ] Relevant tests/checks have been completed.
-
-**Validation:**
-Queried status for both active and disconnected test store records to ensure accurate data projection.
-
-**Checklist:**
-
-- [ ] Code follows project conventions.
-- [ ] No secrets or sensitive information are committed.
-- [ ] Tests were added/updated where applicable.
-- [ ] Documentation was updated if needed.
-- [ ] The PR is focused on the related Issue.
-
----
-
-## Issue 08 — Implement Salla Integration Disconnect
-
-### Issue (Feature Template)
-
-**Title:** `[Feature]: Add Salla integration disconnect`  
-**Labels:** `type:feature`, `priority:medium`, `area:integration`, `area:salla`
-
-**Description:**
-Implement the endpoint (`DELETE /api/v1/integrations/salla`) and business logic to disconnect an existing Salla store integration. Disconnecting updates the integration status to `disconnected`, safely invalidates/removes stored access credentials, and preserves historical data without destructive merchant account deletion.
-
-**Acceptance Criteria:**
-
-- [ ] Disconnect endpoint `DELETE /api/v1/integrations/salla` exists.
-- [ ] Integration record is located by store/merchant context.
-- [ ] Integration status is transitioned to `disconnected`.
-- [ ] Access/refresh credentials are wiped or invalidated.
-- [ ] Platform business data (e.g., historical analytics) is preserved.
-- [ ] Repeated disconnect calls on already disconnected integrations are handled idempotently.
-- [ ] Reconnecting subsequent to disconnect is fully supported.
-
-**Branch Name:**
-`feature/salla-integration-disconnect`
-
-**Milestone:**
-`Sprint 03 — Salla Integration & OAuth`
-
-**Dependencies:**
-
-- Issue 08 — Implement Integration Status
-
-**Notes:**
-Ensure endpoint responds with a 200 OK or 204 No Content upon success.
-
-**Plan Commit:**
-
-- Commit 1: `feat: implement salla disconnect service logic`
-- Commit 2: `feat: add delete integration endpoint and credential wipe`
-
----
-
-### Pull Request 09
-
-**Title:** `feat: add Salla integration disconnect`
-
-**Summary:**
-Adds the ability to disconnect a Salla store while clearing sensitive tokens and preserving platform records.
-
-**Related Issue:**
-Closes #19
-
-**Changes:**
-
-- Add `DELETE /api/v1/integrations/salla` controller endpoint.
-- Implement `disconnectStore` method in `SallaService`.
-- Transition status to `disconnected` and clear active OAuth tokens.
-
-**Acceptance Criteria:**
-
-- [ ] All requirements from the related Issue are satisfied.
-- [ ] No unrelated changes are included.
-- [ ] Relevant tests/checks have been completed.
-
-**Validation:**
-Tested disconnect endpoint; verified token fields were cleared in DB and status updated to `disconnected`.
-
-**Checklist:**
-
-- [ ] Code follows project conventions.
-- [ ] No secrets or sensitive information are committed.
-- [ ] Tests were added/updated where applicable.
-- [ ] Documentation was updated if needed.
-- [ ] The PR is focused on the related Issue.
-
----
-
-## Issue 09 — Handle Salla Integration Errors
+## Issue 07 — Handle Salla Integration Errors
 
 ### Issue (Feature Template)
 
@@ -892,7 +742,7 @@ Ran `npm run test:e2e` to confirm all integration test suites pass green.
 
 ---
 
-## Issue 10 — Document Salla Integration Flow
+## Issue 08 — Document Salla Integration Flow
 
 ### Issue (Documentation Template)
 
