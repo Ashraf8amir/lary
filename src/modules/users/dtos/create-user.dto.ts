@@ -20,4 +20,10 @@ export class CreateUserDto {
   @IsEnum(UserStatus)
   @IsOptional()
   status?: UserStatus;
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(20)
+  @Transform(({ value }: { value?: string }) => (typeof value === 'string' ? value.trim() : value))
+  mobile?: string;
 }

@@ -1,6 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { HydratedDocument } from 'mongoose';
-import { UserStatus } from '../enums/user-status.enum';
 
 export type UserDocument = HydratedDocument<User>;
 
@@ -30,11 +29,11 @@ export class User {
 
   @Prop({
     type: String,
-    enum: Object.values(UserStatus),
-    default: UserStatus.Active,
-    index: true,
+    required: false,
+    trim: true,
+    maxLength: 20,
   })
-  status!: UserStatus;
+  mobile!: string;
 
   createdAt!: Date;
   updatedAt!: Date;

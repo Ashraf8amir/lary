@@ -8,6 +8,7 @@ import { UsersService } from '@/modules/users/users.service';
 
 import { LoginDto } from './dtos/login.dto';
 import { UserProfileDto } from './dtos/user-profile.dto';
+import { AuthProvider } from './enums/auth-provider.enum';
 import { GenerateTokensResult } from './interfaces/auth-result.interface';
 import { SessionContext } from './interfaces/session-context.interface';
 import { AuthRepository } from './repositories/auth.repository';
@@ -124,15 +125,16 @@ export class AuthService {
       id: user._id.toString(),
       email: user.email,
       fullName: user.fullName,
-      status: user.status,
       createdAt: user.createdAt,
     };
   }
 
-  private async issueTokensForNewSession(
+  public async issueTokensForNewSession(
     userId: Types.ObjectId,
     context: SessionContext,
   ): Promise<GenerateTokensResult> {
+    await this.authRepository.ensureAuthDoc(userId, AuthProvider.SALLA);
+
     if (context.deviceId) {
       await this.authRepository.deleteSessionByDeviceId(userId, context.deviceId);
     }

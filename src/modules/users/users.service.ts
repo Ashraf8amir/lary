@@ -35,4 +35,12 @@ export class UsersService {
   async restore(id: string): Promise<boolean> {
     return this.usersRepository.restore(id);
   }
+
+  async findOrCreateMerchantUser(data: {
+    email: string;
+    fullName?: string;
+    mobile?: string;
+  }): Promise<UserDocument> {
+    return this.usersRepository.findOrCreateMerchantUser(data);
+  }
 }

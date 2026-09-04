@@ -205,4 +205,26 @@ export class AuthRepository {
 
     return authDoc?.sessions ?? [];
   }
+
+  async ensureAuthDoc(
+    userId: Types.ObjectId,
+    provider: AuthProvider = AuthProvider.SALLA,
+    providerId: string | null = null,
+  ): Promise<AuthDocument> {
+    return this.authModel.findOneAndUpdate(
+      { userId },
+      {
+        $setOnInsert: {
+          userId,
+          sessions: [],
+          credentials: {
+            passwordHash: null,
+            provider,
+            providerId,
+          },
+        },
+      },
+      { upsert: true, returnDocument: 'after', setDefaultsOnInsert: true },
+    );
+  }
 }

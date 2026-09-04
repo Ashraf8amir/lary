@@ -32,7 +32,7 @@ export class UsersRepository {
     if (!isValidObjectId(id)) return null;
 
     return this.userModel
-      .findByIdAndUpdate(id, { $set: data }, { new: true, runValidators: true })
+      .findByIdAndUpdate(id, { $set: data }, { returnDocument: 'after', runValidators: true })
       .exec();
   }
 
@@ -60,5 +60,31 @@ export class UsersRepository {
       .exec();
 
     return result.modifiedCount > 0;
+  }
+
+  async findOrCreateMerchantUser(data: {
+    email: string;
+    fullName?: string;
+    mobile?: string;
+  }): Promise<UserDocument> {
+    const normalizedEmail = data.email.toLowerCase().trim();
+
+    return this.userModel
+      .findOneAndUpdate(
+        { email: normalizedEmail },
+        {
+          $setOnInsert: {
+            email: normalizedEmail,
+            fullName: data.fullName?.trim() || '',
+            mobile: data.mobile?.trim(),
+          },
+        },
+        {
+          returnDocument: 'after',
+          upsert: true,
+          runValidators: true,
+        },
+      )
+      .exec();
   }
 }
