@@ -30,6 +30,7 @@ import { REDIS_CLIENT } from './infrastructure/redis/redis.constants';
 import { RedisModule } from './infrastructure/redis/redis.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { JwtAccessGuard } from './modules/auth/guards/jwt-auth.guard';
+import { SallaModule } from './modules/integrations/salla/salla.module';
 import { UsersModule } from './modules/users/users.module';
 
 @Module({
@@ -64,6 +65,7 @@ import { UsersModule } from './modules/users/users.module';
     HealthModule,
     UsersModule,
     AuthModule,
+    SallaModule,
   ],
   providers: [
     AppService,
