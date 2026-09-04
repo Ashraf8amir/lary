@@ -1,3 +1,4 @@
+import { BusinessException, ErrorCode } from '@common';
 import { Injectable } from '@nestjs/common';
 import { CreateStoreDto } from './dtos/create-store.dto';
 import { UpdateStoreDto } from './dtos/update-store.dto';
@@ -16,23 +17,25 @@ export class StoresService {
     return this.storesRepository.findById(id);
   }
 
-  async findBySallaId(sallaId: string): Promise<StoreDocument | null> {
-    return this.storesRepository.findBySallaId(sallaId);
-  }
-
   async update(id: string, data: UpdateStoreDto): Promise<StoreDocument | null> {
     return this.storesRepository.update(id, data);
   }
 
-  async upsertBySallaId(sallaId: string, data: Partial<CreateStoreDto>): Promise<StoreDocument> {
-    return this.storesRepository.upsertBySallaId(sallaId, data);
-  }
-
-  async existsBySallaId(sallaId: string): Promise<boolean> {
-    return this.storesRepository.existsBySallaId(sallaId);
-  }
-
   async delete(id: string): Promise<boolean> {
     return this.storesRepository.delete(id);
+  }
+
+  async isOwner(storeId: string, userId: string): Promise<boolean> {
+    return this.storesRepository.existsWithOwner(storeId, userId);
+  }
+
+  async assertOwnership(storeId: string, userId: string): Promise<void> {
+    const isOwner = await this.isOwner(storeId, userId);
+
+    if (!isOwner) {
+      throw new BusinessException('You do not have access to this store', {
+        errorCode: ErrorCode.FORBIDDEN,
+      });
+    }
   }
 }
