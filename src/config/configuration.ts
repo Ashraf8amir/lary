@@ -37,4 +37,14 @@ export default () => ({
     username: process.env.REDIS_USERNAME,
     db: Number(process.env.DATABASE_REDIS_DB) || 0,
   },
+
+  salla: {
+    clientId: process.env.SALLA_CLIENT_ID,
+    clientSecret: process.env.SALLA_CLIENT_SECRET,
+    baseUrl: process.env.SALLA_BASE_URL || 'https://api.salla.dev/admin/v2',
+    oauthUrl: process.env.SALLA_OAUTH_URL || 'https://accounts.salla.sa',
+    tokenRefreshWindow: Number(process.env.SALLA_TOKEN_REFRESH_WINDOW) || 86400,
+    encryptionKey: process.env.SALLA_ENCRYPTION_KEY,
+    webhookSecret: process.env.SALLA_WEBHOOK_SECRET,
+  },
 });

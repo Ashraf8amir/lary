@@ -29,7 +29,6 @@ By the end of this Sprint, a merchant should be able to:
 
 - Salla OAuth configuration
 - OAuth authorization flow
-- OAuth callback
 - Authorization code exchange
 - Merchant/store identification
 - Salla integration persistence
@@ -48,25 +47,24 @@ By the end of this Sprint, a merchant should be able to:
 The basic flow is:
 
 Merchant
-    ↓
+↓
 Connect / Install App
-    ↓
+↓
 Backend OAuth Authorization Endpoint
-    ↓
+↓
 Salla Authorization Page
-    ↓
+↓
 Merchant Approves
-    ↓
+↓
 Salla OAuth Callback
-    ↓
+↓
 Backend Exchanges Authorization Code
-    ↓
+↓
 Identify Merchant / Store
-    ↓
+↓
 Create or Update Integration
-    ↓
+↓
 Integration Connected
-
 
 ---
 
@@ -83,6 +81,7 @@ Integration Connected
 Configure the backend to communicate with the Salla application using environment-based configuration. Salla-specific credentials and configuration (client ID, client secret, redirect URI, authorization/token endpoints) must be centralized and validated, preventing sensitive information from being committed.
 
 **Acceptance Criteria:**
+
 - [ ] Salla client/application configuration is defined.
 - [ ] Salla credentials are loaded from environment configuration.
 - [ ] Redirect URI is configurable.
@@ -103,8 +102,8 @@ Configure the backend to communicate with the Salla application using environmen
 Integrate into the centralized config module with strict schema validation.
 
 **Plan Commit:**
+
 - Commit 1: `chore: add salla application configuration schema`
-- Commit 2: `chore: validate salla oauth environment variables`
 
 ---
 
@@ -119,11 +118,13 @@ Configures environment-based Salla application settings required for OAuth and A
 Closes #11
 
 **Changes:**
+
 - Add Salla configuration namespace in configuration module.
 - Add Joi / class-validator validation for Salla client ID, secret, and webhook secret.
 - Update `.env.example` with required Salla variables.
 
 **Acceptance Criteria:**
+
 - [ ] All requirements from the related Issue are satisfied.
 - [ ] No unrelated changes are included.
 - [ ] Relevant tests/checks have been completed.
@@ -132,6 +133,7 @@ Closes #11
 Verified that application fails to start when required Salla variables are missing, and passes when configured properly.
 
 **Checklist:**
+
 - [ ] Code follows project conventions.
 - [ ] No secrets or sensitive information are committed.
 - [ ] Tests were added/updated where applicable.
@@ -151,6 +153,7 @@ Verified that application fails to start when required Salla variables are missi
 Create the dedicated NestJS module responsible for managing the relationship between the platform and external Salla stores. The module should isolate OAuth workflows, credential handling, API communication, and lifecycle persistence, allowing clean extension for future ecommerce platforms.
 
 **Acceptance Criteria:**
+
 - [ ] Integration module exists.
 - [ ] Salla-specific logic is isolated.
 - [ ] OAuth logic has a clear location.
@@ -165,12 +168,14 @@ Create the dedicated NestJS module responsible for managing the relationship bet
 `Sprint 03 — Salla Integration & OAuth`
 
 **Dependencies:**
+
 - Issue 01 — Configure Salla Application
 
 **Notes:**
 Ensure controllers and providers are scoped inside `src/modules/salla` or `src/modules/integrations/salla`.
 
 **Plan Commit:**
+
 - Commit 1: `feat: scaffold salla integration module`
 - Commit 2: `feat: register salla module in root application module`
 
@@ -187,11 +192,13 @@ Introduces the Salla integration module and isolates platform-specific integrati
 Closes #12
 
 **Changes:**
+
 - Create `SallaModule`, `SallaController`, and `SallaService` scaffolding.
 - Setup directory hierarchy for DTOs, interfaces, and strategies.
 - Register `SallaModule` in `AppModule`.
 
 **Acceptance Criteria:**
+
 - [ ] All requirements from the related Issue are satisfied.
 - [ ] No unrelated changes are included.
 - [ ] Relevant tests/checks have been completed.
@@ -200,6 +207,7 @@ Closes #12
 Ran build to ensure module dependency injection tree is clean and module compiles.
 
 **Checklist:**
+
 - [ ] Code follows project conventions.
 - [ ] No secrets or sensitive information are committed.
 - [ ] Tests were added/updated where applicable.
@@ -219,6 +227,7 @@ Ran build to ensure module dependency injection tree is clean and module compile
 Create the Mongoose database schema responsible for storing merchant connections to Salla. The schema tracks store identity, platform type, encrypted/protected OAuth tokens (access token, refresh token, expiry), and connection status, ensuring unique indexing per merchant store to prevent duplicate records.
 
 **Acceptance Criteria:**
+
 - [ ] Integration schema is created.
 - [ ] Salla merchant/store identifier is stored.
 - [ ] Platform is represented.
@@ -236,12 +245,14 @@ Create the Mongoose database schema responsible for storing merchant connections
 `Sprint 03 — Salla Integration & OAuth`
 
 **Dependencies:**
+
 - Issue 02 — Create Salla Integration Module
 
 **Notes:**
 Add field transformation or select exclusion to avoid accidental token leakage in API responses.
 
 **Plan Commit:**
+
 - Commit 1: `feat: create salla integration mongoose schema`
 - Commit 2: `feat: add indexes and select protection for credentials`
 
@@ -258,12 +269,14 @@ Adds the persistence model for merchant Salla connections, including connection 
 Closes #13
 
 **Changes:**
+
 - Create `SallaIntegration` schema definition and interface.
 - Add unique compound index on `merchantId` and `storeId`.
 - Add credential fields with query exclusion flags (`select: false`).
 - Register schema in `MongooseModule.forFeature`.
 
 **Acceptance Criteria:**
+
 - [ ] All requirements from the related Issue are satisfied.
 - [ ] No unrelated changes are included.
 - [ ] Relevant tests/checks have been completed.
@@ -272,6 +285,7 @@ Closes #13
 Verified schema creation in MongoDB and validated index constraints with automated model unit test.
 
 **Checklist:**
+
 - [ ] Code follows project conventions.
 - [ ] No secrets or sensitive information are committed.
 - [ ] Tests were added/updated where applicable.
@@ -291,6 +305,7 @@ Verified schema creation in MongoDB and validated index constraints with automat
 Create the backend endpoint (`GET /api/v1/integrations/salla/oauth`) that initiates the OAuth flow. The endpoint generates a cryptographically secure random `state` parameter, persists/caches it for subsequent validation, builds the Salla authorization URL, and redirects the merchant to Salla.
 
 **Acceptance Criteria:**
+
 - [ ] Endpoint `GET /api/v1/integrations/salla/oauth` exists.
 - [ ] Endpoint generates the Salla authorization URL.
 - [ ] Required OAuth query parameters are included (`client_id`, `redirect_uri`, `response_type=code`, `scope`, `state`).
@@ -305,6 +320,7 @@ Create the backend endpoint (`GET /api/v1/integrations/salla/oauth`) that initia
 `Sprint 03 — Salla Integration & OAuth`
 
 **Dependencies:**
+
 - Issue 01 — Configure Salla Application
 - Issue 02 — Create Salla Integration Module
 
@@ -312,6 +328,7 @@ Create the backend endpoint (`GET /api/v1/integrations/salla/oauth`) that initia
 State should have a short TTL (e.g., 5–10 minutes).
 
 **Plan Commit:**
+
 - Commit 1: `feat: implement oauth authorization url generator`
 - Commit 2: `feat: add oauth state generation and redirect endpoint`
 
@@ -328,11 +345,13 @@ Adds the endpoint responsible for initiating the Salla OAuth authorization flow 
 Closes #14
 
 **Changes:**
+
 - Add `GET /api/v1/integrations/salla/oauth` route handler.
 - Implement state generator service with temporary cache storage.
 - Construct compliant Salla OAuth authorization URL.
 
 **Acceptance Criteria:**
+
 - [ ] All requirements from the related Issue are satisfied.
 - [ ] No unrelated changes are included.
 - [ ] Relevant tests/checks have been completed.
@@ -341,6 +360,7 @@ Closes #14
 Called the authorization endpoint and verified redirect target location and generated state parameters.
 
 **Checklist:**
+
 - [ ] Code follows project conventions.
 - [ ] No secrets or sensitive information are committed.
 - [ ] Tests were added/updated where applicable.
@@ -348,8 +368,6 @@ Called the authorization endpoint and verified redirect target location and gene
 - [ ] The PR is focused on the related Issue.
 
 ---
-
-## Issue 05 — Implement Salla OAuth Callback
 
 ### Issue (Feature Template)
 
@@ -360,6 +378,7 @@ Called the authorization endpoint and verified redirect target location and gene
 Create the OAuth callback endpoint (`GET /api/v1/integrations/salla/callback`) that processes authorization responses. The endpoint validates the incoming `state`, exchanges the authorization `code` with Salla's token endpoint for access and refresh tokens, identifies merchant/store info, updates integration state, and redirects the merchant.
 
 **Acceptance Criteria:**
+
 - [ ] Callback endpoint `GET /api/v1/integrations/salla/callback` exists.
 - [ ] Authorization code and state query parameters are captured.
 - [ ] OAuth state is validated against stored state; invalid state throws an unauthorized error.
@@ -378,6 +397,7 @@ Create the OAuth callback endpoint (`GET /api/v1/integrations/salla/callback`) t
 `Sprint 03 — Salla Integration & OAuth`
 
 **Dependencies:**
+
 - Issue 03 — Create Integration Schema
 - Issue 04 — Implement OAuth Authorization Endpoint
 
@@ -385,6 +405,7 @@ Create the OAuth callback endpoint (`GET /api/v1/integrations/salla/callback`) t
 Ensure callback returns proper HTTP redirects rather than raw JSON payloads for merchant browser flow.
 
 **Plan Commit:**
+
 - Commit 1: `feat: implement authorization code exchange service`
 - Commit 2: `feat: add oauth callback route and merchant profile retrieval`
 
@@ -401,12 +422,14 @@ Implements the Salla OAuth callback, authorization-code exchange, merchant ident
 Closes #15
 
 **Changes:**
+
 - Implement `GET /api/v1/integrations/salla/callback` controller and handler.
 - Add code exchange logic contacting Salla token endpoint.
 - Add merchant user info endpoint call to identify store metadata.
 - Persist integration data and redirect to configured frontend success/failure route.
 
 **Acceptance Criteria:**
+
 - [ ] All requirements from the related Issue are satisfied.
 - [ ] No unrelated changes are included.
 - [ ] Relevant tests/checks have been completed.
@@ -415,6 +438,7 @@ Closes #15
 Simulated complete OAuth callback lifecycle with mocked Salla OAuth provider; verified store persistence and redirect headers.
 
 **Checklist:**
+
 - [ ] Code follows project conventions.
 - [ ] No secrets or sensitive information are committed.
 - [ ] Tests were added/updated where applicable.
@@ -423,7 +447,7 @@ Simulated complete OAuth callback lifecycle with mocked Salla OAuth provider; ve
 
 ---
 
-## Issue 06 — Implement Integration Upsert
+## Issue 05 — Implement Integration Upsert
 
 ### Issue (Feature Template)
 
@@ -434,6 +458,7 @@ Simulated complete OAuth callback lifecycle with mocked Salla OAuth provider; ve
 Implement idempotent persistence logic for Salla store integrations. The service must handle initial merchant installations as well as app reinstallations/reconnections without creating duplicate database records, ensuring tokens and statuses are updated cleanly.
 
 **Acceptance Criteria:**
+
 - [ ] New Salla store integrations are inserted.
 - [ ] Existing store records are updated idempotently on reconnection.
 - [ ] Duplicate integrations for the same store/merchant ID are prevented.
@@ -449,6 +474,7 @@ Implement idempotent persistence logic for Salla store integrations. The service
 `Sprint 03 — Salla Integration & OAuth`
 
 **Dependencies:**
+
 - Issue 03 — Create Integration Schema
 - Issue 05 — Implement Salla OAuth Callback
 
@@ -456,6 +482,7 @@ Implement idempotent persistence logic for Salla store integrations. The service
 Use atomic Mongoose `findOneAndUpdate` with `upsert: true`.
 
 **Plan Commit:**
+
 - Commit 1: `feat: implement salla integration repository upsert method`
 - Commit 2: `test: add unit tests for integration upsert idempotency`
 
@@ -472,11 +499,13 @@ Implements idempotent creation and update of Salla merchant integrations followi
 Closes #16
 
 **Changes:**
+
 - Create `SallaIntegrationRepository` with atomic `upsertByStoreId`.
 - Handle token encryption/hashing hooks before persisting credentials.
 - Add status transition guarantees during reconnect flows.
 
 **Acceptance Criteria:**
+
 - [ ] All requirements from the related Issue are satisfied.
 - [ ] No unrelated changes are included.
 - [ ] Relevant tests/checks have been completed.
@@ -485,6 +514,7 @@ Closes #16
 Ran repeated upsert queries with identical store identifiers to confirm single document persistence.
 
 **Checklist:**
+
 - [ ] Code follows project conventions.
 - [ ] No secrets or sensitive information are committed.
 - [ ] Tests were added/updated where applicable.
@@ -493,7 +523,7 @@ Ran repeated upsert queries with identical store identifiers to confirm single d
 
 ---
 
-## Issue 07 — Create Salla API Client
+## Issue 06 — Create Salla API Client
 
 ### Issue (Feature Template)
 
@@ -504,6 +534,7 @@ Ran repeated upsert queries with identical store identifiers to confirm single d
 Build an HTTP client wrapper using NestJS `HttpModule` (Axios) for interacting with the Salla Merchant API. The client encapsulates base URLs, authorization bearer injection, timeout policies, response data unwrapping, and standardized error translation.
 
 **Acceptance Criteria:**
+
 - [ ] Salla API client service is implemented.
 - [ ] Base URL (`https://api.salla.dev/admin/v2`) is centralized.
 - [ ] Authorization header injection mechanism is implemented.
@@ -519,12 +550,14 @@ Build an HTTP client wrapper using NestJS `HttpModule` (Axios) for interacting w
 `Sprint 03 — Salla Integration & OAuth`
 
 **Dependencies:**
+
 - Issue 03 — Create Integration Schema
 
 **Notes:**
 Provide a clean interface like `sallaClient.getStoreDetails(token)` or `sallaClient.getProducts(storeId)`.
 
 **Plan Commit:**
+
 - Commit 1: `feat: add salla http client service`
 - Commit 2: `feat: add error handling and request interceptors for salla client`
 
@@ -541,11 +574,13 @@ Creates the reusable Salla API client for communicating with Salla admin endpoin
 Closes #17
 
 **Changes:**
+
 - Add `@nestjs/axios` configuration for Salla API.
 - Create `SallaApiClient` service with unified request methods.
 - Add response interceptor to unwrap Salla standard response payloads (`data`, `status`, `pagination`).
 
 **Acceptance Criteria:**
+
 - [ ] All requirements from the related Issue are satisfied.
 - [ ] No unrelated changes are included.
 - [ ] Relevant tests/checks have been completed.
@@ -554,6 +589,7 @@ Closes #17
 Executed mock API calls through `SallaApiClient` to verify header injection and payload unwrap handling.
 
 **Checklist:**
+
 - [ ] Code follows project conventions.
 - [ ] No secrets or sensitive information are committed.
 - [ ] Tests were added/updated where applicable.
@@ -562,7 +598,7 @@ Executed mock API calls through `SallaApiClient` to verify header injection and 
 
 ---
 
-## Issue 08 — Implement Integration Status
+## Issue 07 — Implement Integration Status
 
 ### Issue (Feature Template)
 
@@ -573,6 +609,7 @@ Executed mock API calls through `SallaApiClient` to verify header injection and 
 Implement status query and management capabilities for Salla integrations. The platform must expose status indicators (`connected`, `disconnected`, `expired`) to allow the merchant dashboard to determine whether a store connection is healthy and active.
 
 **Acceptance Criteria:**
+
 - [ ] Integration status enum and state transitions are defined.
 - [ ] Query service returns current integration status without exposing credentials.
 - [ ] Failed or revoked integrations reflect correct non-connected states.
@@ -586,6 +623,7 @@ Implement status query and management capabilities for Salla integrations. The p
 `Sprint 03 — Salla Integration & OAuth`
 
 **Dependencies:**
+
 - Issue 03 — Create Integration Schema
 - Issue 06 — Implement Integration Upsert
 
@@ -593,6 +631,7 @@ Implement status query and management capabilities for Salla integrations. The p
 Expose a lightweight DTO containing `status`, `storeName`, `connectedAt`, and `lastSyncedAt`.
 
 **Plan Commit:**
+
 - Commit 1: `feat: add integration status query service`
 - Commit 2: `feat: add integration status dto and response mapper`
 
@@ -609,11 +648,13 @@ Adds integration lifecycle status handling and safe metadata queries for Salla c
 Closes #18
 
 **Changes:**
+
 - Add `getIntegrationStatus` method in `SallaService`.
 - Create clean `IntegrationStatusResponseDto`.
 - Filter out all sensitive tokens from integration status queries.
 
 **Acceptance Criteria:**
+
 - [ ] All requirements from the related Issue are satisfied.
 - [ ] No unrelated changes are included.
 - [ ] Relevant tests/checks have been completed.
@@ -622,6 +663,7 @@ Closes #18
 Queried status for both active and disconnected test store records to ensure accurate data projection.
 
 **Checklist:**
+
 - [ ] Code follows project conventions.
 - [ ] No secrets or sensitive information are committed.
 - [ ] Tests were added/updated where applicable.
@@ -630,7 +672,7 @@ Queried status for both active and disconnected test store records to ensure acc
 
 ---
 
-## Issue 09 — Implement Salla Integration Disconnect
+## Issue 08 — Implement Salla Integration Disconnect
 
 ### Issue (Feature Template)
 
@@ -641,6 +683,7 @@ Queried status for both active and disconnected test store records to ensure acc
 Implement the endpoint (`DELETE /api/v1/integrations/salla`) and business logic to disconnect an existing Salla store integration. Disconnecting updates the integration status to `disconnected`, safely invalidates/removes stored access credentials, and preserves historical data without destructive merchant account deletion.
 
 **Acceptance Criteria:**
+
 - [ ] Disconnect endpoint `DELETE /api/v1/integrations/salla` exists.
 - [ ] Integration record is located by store/merchant context.
 - [ ] Integration status is transitioned to `disconnected`.
@@ -656,12 +699,14 @@ Implement the endpoint (`DELETE /api/v1/integrations/salla`) and business logic 
 `Sprint 03 — Salla Integration & OAuth`
 
 **Dependencies:**
+
 - Issue 08 — Implement Integration Status
 
 **Notes:**
 Ensure endpoint responds with a 200 OK or 204 No Content upon success.
 
 **Plan Commit:**
+
 - Commit 1: `feat: implement salla disconnect service logic`
 - Commit 2: `feat: add delete integration endpoint and credential wipe`
 
@@ -678,11 +723,13 @@ Adds the ability to disconnect a Salla store while clearing sensitive tokens and
 Closes #19
 
 **Changes:**
+
 - Add `DELETE /api/v1/integrations/salla` controller endpoint.
 - Implement `disconnectStore` method in `SallaService`.
 - Transition status to `disconnected` and clear active OAuth tokens.
 
 **Acceptance Criteria:**
+
 - [ ] All requirements from the related Issue are satisfied.
 - [ ] No unrelated changes are included.
 - [ ] Relevant tests/checks have been completed.
@@ -691,6 +738,7 @@ Closes #19
 Tested disconnect endpoint; verified token fields were cleared in DB and status updated to `disconnected`.
 
 **Checklist:**
+
 - [ ] Code follows project conventions.
 - [ ] No secrets or sensitive information are committed.
 - [ ] Tests were added/updated where applicable.
@@ -699,7 +747,7 @@ Tested disconnect endpoint; verified token fields were cleared in DB and status 
 
 ---
 
-## Issue 10 — Handle Salla Integration Errors
+## Issue 09 — Handle Salla Integration Errors
 
 ### Issue (Feature Template)
 
@@ -710,6 +758,7 @@ Tested disconnect endpoint; verified token fields were cleared in DB and status 
 Implement centralized error handling and domain exceptions for the Salla integration lifecycle. Captures OAuth exchange rejections, invalid/expired state tokens, Salla upstream API failures, and network timeouts, converting them into clear application errors without exposing provider secrets.
 
 **Acceptance Criteria:**
+
 - [ ] Custom domain exceptions are created (`SallaOAuthException`, `SallaApiException`, `InvalidOAuthStateException`).
 - [ ] OAuth errors from Salla query parameters (`?error=access_denied`) are caught and handled.
 - [ ] Upstream Salla 4xx/5xx responses are caught and translated into consistent API errors.
@@ -723,6 +772,7 @@ Implement centralized error handling and domain exceptions for the Salla integra
 `Sprint 03 — Salla Integration & OAuth`
 
 **Dependencies:**
+
 - Issue 05 — Implement Salla OAuth Callback
 - Issue 07 — Create Salla API Client
 
@@ -730,6 +780,7 @@ Implement centralized error handling and domain exceptions for the Salla integra
 Integrate with the global exception filter configured in Sprint 01.
 
 **Plan Commit:**
+
 - Commit 1: `feat: define salla domain exception classes`
 - Commit 2: `feat: add salla api error translation interceptor`
 
@@ -746,11 +797,13 @@ Adds domain-specific exception handling across the Salla OAuth and API integrati
 Closes #20
 
 **Changes:**
+
 - Add `src/modules/salla/exceptions` module classes.
 - Implement error translator inside `SallaApiClient`.
 - Handle callback failure redirects for unauthorized / canceled OAuth attempts.
 
 **Acceptance Criteria:**
+
 - [ ] All requirements from the related Issue are satisfied.
 - [ ] No unrelated changes are included.
 - [ ] Relevant tests/checks have been completed.
@@ -759,6 +812,7 @@ Closes #20
 Simulated Salla API 401, 403, 500 responses and verified that sanitized domain errors were logged and returned.
 
 **Checklist:**
+
 - [ ] Code follows project conventions.
 - [ ] No secrets or sensitive information are committed.
 - [ ] Tests were added/updated where applicable.
@@ -766,8 +820,6 @@ Simulated Salla API 401, 403, 500 responses and verified that sanitized domain e
 - [ ] The PR is focused on the related Issue.
 
 ---
-
-## Issue 11 — Add Salla Integration Tests
 
 ### Issue (Feature Template)
 
@@ -778,6 +830,7 @@ Simulated Salla API 401, 403, 500 responses and verified that sanitized domain e
 Add automated end-to-end and integration tests covering the complete Salla OAuth authorization and integration lifecycle against mocked Salla API endpoints.
 
 **Acceptance Criteria:**
+
 - [ ] Test suite verifies authorization redirect and state generation.
 - [ ] Test suite verifies successful callback code exchange and merchant persistence.
 - [ ] Test suite validates invalid OAuth state rejection.
@@ -793,12 +846,14 @@ Add automated end-to-end and integration tests covering the complete Salla OAuth
 `Sprint 03 — Salla Integration & OAuth`
 
 **Dependencies:**
+
 - All implementation Issues in Sprint 03
 
 **Notes:**
 Use NestJS testing module and mock Axios calls / Nock.
 
 **Plan Commit:**
+
 - Commit 1: `test: add salla oauth flow e2e tests`
 - Commit 2: `test: add salla integration service and client unit tests`
 
@@ -815,11 +870,13 @@ Adds automated integration and E2E test suites covering the Salla OAuth lifecycl
 Closes #21
 
 **Changes:**
+
 - Add `test/integrations/salla-oauth.e2e-spec.ts`.
 - Add unit tests for `SallaService` and `SallaApiClient`.
 - Add mock fixtures for Salla OAuth token and user profile responses.
 
 **Acceptance Criteria:**
+
 - [ ] All requirements from the related Issue are satisfied.
 - [ ] No unrelated changes are included.
 - [ ] Relevant tests/checks have been completed.
@@ -828,6 +885,7 @@ Closes #21
 Ran `npm run test:e2e` to confirm all integration test suites pass green.
 
 **Checklist:**
+
 - [ ] Code follows project conventions.
 - [ ] No secrets or sensitive information are committed.
 - [ ] Tests were added/updated where applicable.
@@ -836,7 +894,7 @@ Ran `npm run test:e2e` to confirm all integration test suites pass green.
 
 ---
 
-## Issue 12 — Document Salla Integration Flow
+## Issue 10 — Document Salla Integration Flow
 
 ### Issue (Documentation Template)
 
@@ -847,6 +905,7 @@ Ran `npm run test:e2e` to confirm all integration test suites pass green.
 Create developer documentation detailing the Salla OAuth installation flow, available API endpoints, credential lifecycle, environment requirements, and disconnect architecture.
 
 **Scope:**
+
 - Complete OAuth sequence diagram and flow breakdown.
 - API endpoints documentation (`GET /oauth`, `GET /callback`, `DELETE /integrations/salla`).
 - Environment variables checklist for Salla developer apps.
@@ -860,12 +919,14 @@ Create developer documentation detailing the Salla OAuth installation flow, avai
 `Sprint 03 — Salla Integration & OAuth`
 
 **Dependencies:**
+
 - All implementation Issues in Sprint 03
 
 **Notes:**
 Place documentation in `docs/integrations/salla.md`.
 
 **Plan Commit:**
+
 - Commit 1: `docs: document salla oauth architecture and sequence`
 - Commit 2: `docs: document salla api endpoints and configuration guide`
 
@@ -882,11 +943,13 @@ Adds comprehensive developer documentation covering the Salla OAuth flow, integr
 Closes #22
 
 **Changes:**
+
 - Add `docs/integrations/salla.md`.
 - Include OAuth flow architecture diagrams and endpoint specifications.
 - Document configuration and token management policies.
 
 **Acceptance Criteria:**
+
 - [ ] All requirements from the related Issue are satisfied.
 - [ ] No unrelated changes are included.
 - [ ] Relevant tests/checks have been completed.
@@ -895,6 +958,7 @@ Closes #22
 Reviewed markdown rendering and validated accuracy against implemented Salla routes.
 
 **Checklist:**
+
 - [ ] Code follows project conventions.
 - [ ] No secrets or sensitive information are committed.
 - [ ] Tests were added/updated where applicable.

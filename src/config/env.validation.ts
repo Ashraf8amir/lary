@@ -70,4 +70,28 @@ export const envValidationSchema = Joi.object({
   DATABASE_REDIS_DB: Joi.number().optional().default(0).messages({
     'number.base': 'DATABASE_REDIS_DB must be a number',
   }),
+
+  SALLA_CLIENT_ID: Joi.string().required().messages({
+    'any.required': 'SALLA_CLIENT_ID is required',
+  }),
+  SALLA_CLIENT_SECRET: Joi.string().required().messages({
+    'any.required': 'SALLA_CLIENT_SECRET is required',
+  }),
+  SALLA_BASE_URL: Joi.string().uri().optional().default('https://api.salla.dev/admin/v2').messages({
+    'string.uri': 'SALLA_BASE_URL must be a valid URL',
+  }),
+  SALLA_OAUTH_URL: Joi.string().uri().optional().default('https://accounts.salla.sa').messages({
+    'string.uri': 'SALLA_OAUTH_URL must be a valid URL',
+  }),
+  SALLA_TOKEN_REFRESH_WINDOW: Joi.number().optional().default(86400).messages({
+    'number.base': 'SALLA_TOKEN_REFRESH_WINDOW must be a number',
+  }),
+  SALLA_ENCRYPTION_KEY: Joi.string().hex().length(64).required().messages({
+    'string.hex': 'SALLA_ENCRYPTION_KEY must be a valid hex string',
+    'string.length': 'SALLA_ENCRYPTION_KEY must be 64 hex characters (32 bytes)',
+    'any.required': 'SALLA_ENCRYPTION_KEY is required',
+  }),
+  SALLA_WEBHOOK_SECRET: Joi.string().required().messages({
+    'any.required': 'SALLA_WEBHOOK_SECRET is required',
+  }),
 });
