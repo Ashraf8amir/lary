@@ -43,8 +43,10 @@ export default () => ({
     clientSecret: process.env.SALLA_CLIENT_SECRET,
     baseUrl: process.env.SALLA_BASE_URL || 'https://api.salla.dev/admin/v2',
     oauthUrl: process.env.SALLA_OAUTH_URL || 'https://accounts.salla.sa',
-    tokenRefreshWindow: Number(process.env.SALLA_TOKEN_REFRESH_WINDOW) || 86400,
+    tokenRefreshWindowSeconds: Number(process.env.SALLA_TOKEN_REFRESH_WINDOW) || 86400,
     encryptionKey: process.env.SALLA_ENCRYPTION_KEY,
     webhookSecret: process.env.SALLA_WEBHOOK_SECRET,
+    appId: process.env.SALLA_APP_ID,
+    embeddedApiUrl: process.env.SALLA_EMBEDDED_API_URL || 'https://api.salla.dev',
   },
 });

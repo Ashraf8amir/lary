@@ -83,7 +83,7 @@ export const envValidationSchema = Joi.object({
   SALLA_OAUTH_URL: Joi.string().uri().optional().default('https://accounts.salla.sa').messages({
     'string.uri': 'SALLA_OAUTH_URL must be a valid URL',
   }),
-  SALLA_TOKEN_REFRESH_WINDOW: Joi.number().optional().default(86400).messages({
+  SALLA_TOKEN_REFRESH_WINDOW_SECONDS: Joi.number().optional().default(86400).messages({
     'number.base': 'SALLA_TOKEN_REFRESH_WINDOW must be a number',
   }),
   SALLA_ENCRYPTION_KEY: Joi.string().hex().length(64).required().messages({
@@ -93,5 +93,12 @@ export const envValidationSchema = Joi.object({
   }),
   SALLA_WEBHOOK_SECRET: Joi.string().required().messages({
     'any.required': 'SALLA_WEBHOOK_SECRET is required',
+  }),
+
+  SALLA_APP_ID: Joi.string().required().messages({
+    'any.required': 'SALLA_APP_ID is required',
+  }),
+  SALLA_EMBEDDED_API_URL: Joi.string().uri().optional().default('https://api.salla.dev').messages({
+    'string.uri': 'SALLA_EMBEDDED_API_URL must be a valid URL',
   }),
 });
