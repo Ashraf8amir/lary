@@ -1,7 +1,8 @@
 import { createHash, randomBytes, randomUUID, timingSafeEqual } from 'node:crypto';
 
-import { Injectable, UnauthorizedException } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
+import jwtConfig from '@/config/jwt.config';
+import { Inject, Injectable, UnauthorizedException } from '@nestjs/common';
+import type { ConfigType } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 
 import { AccessTokenPayload } from '../interfaces/jwt-payload.interface';
@@ -16,15 +17,14 @@ export interface AccessTokenResult {
 export class TokenService {
   constructor(
     private readonly jwtService: JwtService,
-    private readonly configService: ConfigService,
+    @Inject(jwtConfig.KEY)
+    private readonly config: ConfigType<typeof jwtConfig>,
   ) {}
 
   signAccessToken(params: { userId: string; sessionId: string }): AccessTokenResult {
     const jti = randomUUID();
 
-    const expiresInSeconds = this.parseExpiresIn(
-      this.configService.getOrThrow<string>('jwt.access.expiration'),
-    );
+    const expiresInSeconds = this.parseExpiresIn(this.config.access.expiration);
 
     const expiresAt = new Date(Date.now() + expiresInSeconds * 1000);
 
@@ -35,8 +35,8 @@ export class TokenService {
     };
 
     const token = this.jwtService.sign(payload, {
-      secret: this.configService.getOrThrow<string>('jwt.access.secret'),
-      expiresIn: this.configService.getOrThrow<string>('jwt.access.expiration'),
+      secret: this.config.access.secret,
+      expiresIn: this.config.access.expiration,
     } as any);
 
     return {
@@ -49,7 +49,7 @@ export class TokenService {
   async verifyAccessToken(token: string): Promise<AccessTokenPayload> {
     try {
       const payload = this.jwtService.verify<AccessTokenPayload>(token, {
-        secret: this.configService.getOrThrow<string>('jwt.access.secret'),
+        secret: this.config.access.secret,
       });
 
       if (!payload.sub) {
@@ -78,9 +78,7 @@ export class TokenService {
     const raw = randomBytes(64).toString('base64url');
 
     const hash = this.hashToken(raw);
-    const refreshExpiresInSeconds = this.parseExpiresIn(
-      this.configService.getOrThrow<string>('jwt.refresh.expiration'),
-    );
+    const refreshExpiresInSeconds = this.parseExpiresIn(this.config.refresh.expiration);
 
     const expiresAt = new Date(Date.now() + refreshExpiresInSeconds * 1000);
 

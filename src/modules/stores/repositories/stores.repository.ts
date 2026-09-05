@@ -44,4 +44,16 @@ export class StoresRepository {
     const result = await this.storeModel.deleteOne({ _id: id }).exec();
     return result.deletedCount > 0;
   }
+
+  async markOnboardingCompleted(id: string): Promise<StoreDocument | null> {
+    if (!isValidObjectId(id)) return null;
+
+    return this.storeModel
+      .findByIdAndUpdate(
+        id,
+        { $set: { onboardingCompletedAt: new Date() } },
+        { returnDocument: 'after' },
+      )
+      .exec();
+  }
 }

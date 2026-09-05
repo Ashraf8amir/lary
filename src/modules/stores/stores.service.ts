@@ -38,4 +38,8 @@ export class StoresService {
       });
     }
   }
+
+  async markOnboardingCompleted(id: string): Promise<StoreDocument | null> {
+    return this.storesRepository.markOnboardingCompleted(id);
+  }
 }

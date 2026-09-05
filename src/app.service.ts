@@ -1,19 +1,21 @@
+import appConfig from '@/config/app.config';
 import { DatabaseService } from '@/infrastructure/database/mongoose/database.service';
-import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
+import { Inject, Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
+import type { ConfigType } from '@nestjs/config';
 
 @Injectable()
 export class AppService implements OnApplicationBootstrap {
   private readonly logger = new Logger('AppStartup');
 
   constructor(
-    private readonly configService: ConfigService,
+    @Inject(appConfig.KEY)
+    private readonly config: ConfigType<typeof appConfig>,
     private readonly databaseService: DatabaseService,
   ) {}
 
   onApplicationBootstrap(): void {
-    const env = this.configService.get<string>('app.nodeEnv');
-    const port = this.configService.get<number>('app.port');
+    const env = this.config.nodeEnv;
+    const port = this.config.port;
     const memoryMb = Math.round(process.memoryUsage().heapUsed / 1024 / 1024);
 
     this.logger.log('────────────────────────────────────────────');

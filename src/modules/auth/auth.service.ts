@@ -129,7 +129,7 @@ export class AuthService {
     };
   }
 
-  public async issueTokensForNewSession(
+  async issueTokensForNewSession(
     userId: Types.ObjectId,
     context: SessionContext,
   ): Promise<GenerateTokensResult> {
@@ -170,6 +170,22 @@ export class AuthService {
       accessTokenExpiresAt: accessToken.expiresAt,
       refreshTokenExpiresAt: refreshToken.expiresAt,
       rawRefreshToken: refreshToken.raw,
+    };
+  }
+
+  async issueStatelessAccessToken(
+    userId: Types.ObjectId,
+  ): Promise<{ accessToken: string; accessTokenExpiresAt: Date }> {
+    const sessionId = randomUUID();
+
+    const accessToken = this.TokenService.signAccessToken({
+      userId: userId.toString(),
+      sessionId,
+    });
+
+    return {
+      accessToken: accessToken.token,
+      accessTokenExpiresAt: accessToken.expiresAt,
     };
   }
 }

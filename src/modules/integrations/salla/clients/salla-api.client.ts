@@ -1,5 +1,6 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
+import sallaConfig from '@/config/salla.config';
+import { Inject, Injectable, Logger } from '@nestjs/common';
+import type { ConfigType } from '@nestjs/config';
 import type { SallaUserInfo } from '../interfaces/salla-api.interface';
 import type { SallaRefreshTokenResponse } from '../interfaces/salla-oauth.interface';
 import { SallaHttpClient } from './salla-http.client';
@@ -13,11 +14,12 @@ export class SallaApiClient {
 
   constructor(
     private readonly httpClient: SallaHttpClient,
-    private readonly configService: ConfigService,
+    @Inject(sallaConfig.KEY)
+    private readonly config: ConfigType<typeof sallaConfig>,
   ) {
-    this.clientId = this.configService.getOrThrow<string>('salla.clientId');
-    this.clientSecret = this.configService.getOrThrow<string>('salla.clientSecret');
-    this.oauthUrl = this.configService.getOrThrow<string>('salla.oauthUrl');
+    this.clientId = this.config.clientId;
+    this.clientSecret = this.config.clientSecret;
+    this.oauthUrl = this.config.oauthUrl;
   }
 
   async refreshAccessToken(refreshToken: string): Promise<SallaRefreshTokenResponse> {
@@ -36,6 +38,9 @@ export class SallaApiClient {
 
   async getUserInfo(accessToken: string): Promise<SallaUserInfo> {
     this.logger.debug('Fetching Salla merchant profile info');
-    return this.httpClient.get<SallaUserInfo>(`${this.oauthUrl}/oauth2/user/info`, accessToken);
+    return this.httpClient.getAuthenticated<SallaUserInfo>(
+      `${this.oauthUrl}/oauth2/user/info`,
+      accessToken,
+    );
   }
 }
