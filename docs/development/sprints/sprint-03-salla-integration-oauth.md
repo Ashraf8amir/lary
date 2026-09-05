@@ -862,7 +862,6 @@ Place documentation in `docs/integrations/salla.md`.
 **Plan Commit:**
 
 - Commit 1: `docs: document salla oauth architecture and sequence`
-- Commit 2: `docs: document salla api endpoints and configuration guide`
 
 ---
 
