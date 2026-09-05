@@ -1,6 +1,7 @@
 import { ErrorCode } from '@common';
-import { HttpStatus, Injectable } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
+import sallaConfig from '@/config/salla.config';
+import { HttpStatus, Inject, Injectable } from '@nestjs/common';
+import type { ConfigType } from '@nestjs/config';
 import axios from 'axios';
 import { SallaApiException } from '../exceptions/salla.exception';
 import {
@@ -11,11 +12,11 @@ import { BaseHttpClient } from './base-http.client';
 
 @Injectable()
 export class SallaEmbeddedClient extends BaseHttpClient {
-  constructor(configService: ConfigService) {
+  constructor(@Inject(sallaConfig.KEY) config: ConfigType<typeof sallaConfig>) {
     super(SallaEmbeddedClient.name, {
-      baseURL: configService.getOrThrow<string>('salla.embeddedApiUrl'),
+      baseURL: config.embeddedApiUrl,
       headers: {
-        's-source': configService.getOrThrow<string>('salla.appId'),
+        's-source': config.appId,
       },
     });
   }

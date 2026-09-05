@@ -1,7 +1,8 @@
 import { BusinessException, ErrorCode } from '@common';
 import { StoresService } from '@modules/stores/stores.service';
-import { Injectable, Logger } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
+import sallaConfig from '@/config/salla.config';
+import { Inject, Injectable, Logger } from '@nestjs/common';
+import type { ConfigType } from '@nestjs/config';
 import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
 import { createHmac, timingSafeEqual } from 'node:crypto';
@@ -30,7 +31,8 @@ export class SallaIntegrationService {
     private readonly integrationRepository: SallaIntegrationRepository,
     private readonly sallaTokenService: SallaTokenService,
     private readonly storesService: StoresService,
-    private readonly configService: ConfigService,
+    @Inject(sallaConfig.KEY)
+    private readonly config: ConfigType<typeof sallaConfig>,
     private readonly usersService: UsersService,
     private readonly sallaApiClient: SallaApiClient,
   ) {}
@@ -233,7 +235,7 @@ export class SallaIntegrationService {
       return false;
     }
 
-    const webhookSecret = this.configService.getOrThrow<string>('salla.webhookSecret');
+    const webhookSecret = this.config.webhookSecret;
     const computedSignature = createHmac('sha256', webhookSecret).update(rawBody).digest('hex');
 
     const receivedBuffer = Buffer.from(receivedSignature, 'utf8');

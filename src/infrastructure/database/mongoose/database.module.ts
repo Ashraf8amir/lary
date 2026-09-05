@@ -1,27 +1,31 @@
+import appConfig from '@/config/app.config';
+import databaseConfig from '@/config/database.config';
 import { Module } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
+import { ConfigType } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
 import { DatabaseService } from './database.service';
+
+type AppConfig = ConfigType<typeof appConfig>;
+type DatabaseConfig = ConfigType<typeof databaseConfig>;
 
 @Module({
   imports: [
     MongooseModule.forRootAsync({
-      inject: [ConfigService],
+      inject: [databaseConfig.KEY, appConfig.KEY],
 
-      useFactory: (configService: ConfigService) => ({
-        uri: configService.getOrThrow<string>('database.uri'),
+      useFactory: (databaseCfg: DatabaseConfig, appCfg: AppConfig) => ({
+        uri: databaseCfg.uri,
 
-        retryAttempts: configService.get<number>('database.retryAttempts') ?? 5,
-        retryDelay: configService.get<number>('database.retryDelay') ?? 1000,
+        retryAttempts: databaseCfg.retryAttempts,
+        retryDelay: databaseCfg.retryDelay,
 
-        maxPoolSize: configService.get<number>('database.maxPoolSize') ?? 10,
-        minPoolSize: configService.get<number>('database.minPoolSize') ?? 5,
+        maxPoolSize: databaseCfg.maxPoolSize,
+        minPoolSize: databaseCfg.minPoolSize,
 
-        serverSelectionTimeoutMS:
-          configService.get<number>('database.serverSelectionTimeoutMS') ?? 5000,
+        serverSelectionTimeoutMS: databaseCfg.serverSelectionTimeoutMS,
 
         retryWrites: true,
-        autoIndex: configService.get<string>('app.NODE_ENV') !== 'production',
+        autoIndex: appCfg.nodeEnv !== 'production',
       }),
     }),
   ],

@@ -1,5 +1,6 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
+import sallaConfig from '@/config/salla.config';
+import { Inject, Injectable, Logger } from '@nestjs/common';
+import type { ConfigType } from '@nestjs/config';
 import { createCipheriv, createDecipheriv, randomBytes } from 'node:crypto';
 import type { EncryptedData } from './interfaces/encryption.interface';
 
@@ -9,8 +10,11 @@ export class EncryptionService {
   private readonly algorithm = 'aes-256-gcm';
   private readonly key: Buffer;
 
-  constructor(private readonly configService: ConfigService) {
-    const hexKey = this.configService.getOrThrow<string>('salla.encryptionKey');
+  constructor(
+    @Inject(sallaConfig.KEY)
+    private readonly config: ConfigType<typeof sallaConfig>,
+  ) {
+    const hexKey = this.config.encryptionKey;
     this.key = Buffer.from(hexKey, 'hex');
 
     if (this.key.length !== 32) {

@@ -1,6 +1,7 @@
 import { ErrorCode } from '@common';
-import { HttpStatus, Injectable } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
+import sallaConfig from '@/config/salla.config';
+import { HttpStatus, Inject, Injectable } from '@nestjs/common';
+import type { ConfigType } from '@nestjs/config';
 import axios, { AxiosRequestConfig } from 'axios';
 import { SallaApiException } from '../exceptions/salla.exception';
 import { BaseHttpClient } from './base-http.client';
@@ -14,13 +15,17 @@ interface SallaErrorBody {
 
 @Injectable()
 export class SallaHttpClient extends BaseHttpClient {
-  constructor(configService: ConfigService) {
+  constructor(@Inject(sallaConfig.KEY) config: ConfigType<typeof sallaConfig>) {
     super(SallaHttpClient.name, {
-      baseURL: configService.getOrThrow<string>('salla.baseUrl'),
+      baseURL: config.baseUrl,
     });
   }
 
-  async get<T>(url: string, accessToken: string, config?: AxiosRequestConfig): Promise<T> {
+  async getAuthenticated<T>(
+    url: string,
+    accessToken: string,
+    config?: AxiosRequestConfig,
+  ): Promise<T> {
     return super.get<T>(url, {
       ...config,
       headers: {

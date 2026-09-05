@@ -1,16 +1,18 @@
 import { Environment, ResponseMessage } from '@common';
+import appConfig from '@/config/app.config';
 import {
   Body,
   Controller,
   Get,
   HttpCode,
   HttpStatus,
+  Inject,
   Post,
   Req,
   Res,
   UseGuards,
 } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
+import type { ConfigType } from '@nestjs/config';
 import type { CookieOptions, Request, Response } from 'express';
 import { Types } from 'mongoose';
 import { createHash } from 'node:crypto';
@@ -31,7 +33,8 @@ const REFRESH_COOKIE_NAME = 'refreshToken';
 export class AuthController {
   constructor(
     private readonly authService: AuthService,
-    private readonly configService: ConfigService,
+    @Inject(appConfig.KEY)
+    private readonly config: ConfigType<typeof appConfig>,
   ) {}
 
   @Public()
@@ -129,8 +132,8 @@ export class AuthController {
   }
 
   private getRefreshCookieOptions(): CookieOptions {
-    const isProduction = this.configService.get<string>('NODE_ENV') === Environment.Production;
-    const cookieDomain = this.configService.get<string>('COOKIE_DOMAIN');
+    const isProduction = this.config.nodeEnv === Environment.Production;
+    const cookieDomain = this.config.cookieDomain;
 
     return {
       httpOnly: true,

@@ -1,9 +1,10 @@
+import sallaConfig from '@/config/salla.config';
 import { BusinessException, ErrorCode } from '@common';
 import { CacheService } from '@infrastructure/cache/cache.service';
 import { CACHE_KEYS, CACHE_TTL } from '@infrastructure/cache/constants/cache.constants';
 import { EncryptionService } from '@infrastructure/encryption/encryption.service';
-import { Injectable, Logger } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
+import { Inject, Injectable, Logger } from '@nestjs/common';
+import type { ConfigType } from '@nestjs/config';
 import { SallaApiClient } from '../clients/salla-api.client';
 import { SallaApiException } from '../exceptions/salla.exception';
 import {
@@ -17,7 +18,8 @@ export class SallaTokenService {
   private readonly logger = new Logger(SallaTokenService.name);
 
   constructor(
-    private readonly configService: ConfigService,
+    @Inject(sallaConfig.KEY)
+    private readonly config: ConfigType<typeof sallaConfig>,
     private readonly encryptionService: EncryptionService,
     private readonly cacheService: CacheService,
     private readonly integrationRepository: SallaIntegrationRepository,
@@ -84,10 +86,7 @@ export class SallaTokenService {
   isTokenExpiringSoon(integration: SallaIntegrationDocument): boolean {
     if (!integration.accessToken?.expiresAt) return true;
 
-    const refreshWindowSeconds = this.configService.get<number>(
-      'salla.tokenRefreshWindowSeconds',
-      86400,
-    );
+    const refreshWindowSeconds = this.config.tokenRefreshWindowSeconds;
 
     return (
       new Date(integration.accessToken.expiresAt).getTime() <=

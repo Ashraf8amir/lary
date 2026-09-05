@@ -1,11 +1,11 @@
 import { Logger, RequestMethod, VersioningType } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 import compression from 'compression';
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
 
+import appConfig from './config/app.config';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
@@ -18,14 +18,14 @@ async function bootstrap() {
 
   app.useLogger(app.get(WINSTON_MODULE_NEST_PROVIDER));
 
-  const configService = app.get(ConfigService);
-  const nodeEnv = configService.get<string>('app.nodeEnv') || process.env.NODE_ENV || 'development';
+  const appCfg = app.get(appConfig.KEY);
+  const nodeEnv = appCfg.nodeEnv || process.env.NODE_ENV || 'development';
   const isProduction = nodeEnv === 'production';
-  const allowedOrigins = configService.get<string>('app.allowedOrigins');
-  const port = configService.get<number>('app.port') || Number(process.env.PORT) || 3000;
+  const allowedOrigins = appCfg.allowedOrigins;
+  const port = appCfg.port || Number(process.env.PORT) || 3000;
 
   app.enableCors({
-    origin: isProduction && allowedOrigins ? allowedOrigins.split(',').map((o) => o.trim()) : true,
+    origin: isProduction && allowedOrigins ? allowedOrigins.split(',').map((o: string) => o.trim()) : true,
     credentials: true,
   });
 
