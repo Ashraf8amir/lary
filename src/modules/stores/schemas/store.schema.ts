@@ -60,6 +60,9 @@ export class Store {
     index: true,
   })
   planType!: StorePlan;
+
+  @Prop({ type: Date, required: false })
+  onboardingCompletedAt?: Date;
 }
 
 export const StoreSchema = SchemaFactory.createForClass(Store);
