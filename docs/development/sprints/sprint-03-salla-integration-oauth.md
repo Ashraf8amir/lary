@@ -742,7 +742,93 @@ Ran `npm run test:e2e` to confirm all integration test suites pass green.
 
 ---
 
-## Issue 08 — Document Salla Integration Flow
+## Issue 08 — Implement Salla Embedded App Session Flow
+
+### Issue (Feature Template)
+
+**Title:** `[Feature]: Implement Salla Embedded App session flow`
+**Labels:** `type:feature`, `priority:high`, `area:salla`, `area:auth`, `area:integration`
+
+**Description:**
+Implement backend support for Salla's Embedded App SDK "Trust-but-Verify" flow. When a merchant opens the app from inside the Salla Merchant Dashboard, the frontend (running in an iframe) forwards Salla's short-lived embedded token to our backend, which verifies it via Salla's Introspection API, resolves the internal store/owner, and issues a stateless application access token. Also introduces a shared HTTP client base for Salla-facing clients and a dedicated rate limit for this new public endpoint.
+
+**Acceptance Criteria:**
+
+- [ ] `BaseHttpClient` abstract class created with shared axios setup/logging; `SallaHttpClient` refactored to extend it with no behavior change.
+- [ ] `SallaEmbeddedClient` created to call Salla's Introspect API (`POST /exchange-authority/v1/introspect`) authenticated via the `s-source` header.
+- [ ] `SallaEmbeddedAuthService.createSession()` verifies the embedded token, rejects unknown/unlinked Salla merchants, and resolves the store via the existing `SallaIntegrationRepository`.
+- [ ] `AuthService.issueStatelessAccessToken()` added: issues a plain JWT access token (random `sessionId`, default expiration) without creating a persisted session or refresh token, reusing the existing `TokenService`/`jwt-access` strategy unchanged.
+- [ ] `POST /integrations/salla/embedded/session` endpoint added (`@Public()`), returning `{ accessToken, accessTokenExpiresAt, nextStep }`.
+- [ ] `nextStep` is computed from `Store.onboardingCompletedAt` (`complete_onboarding` | `dashboard`); field added to `Store` schema, set only by a future onboarding-completion flow (out of scope here — deferred to the widget-settings module).
+- [ ] Single-owner limitation documented in code: any user opening the app from the Salla dashboard is treated as `store.ownerId` internally; no per-staff distinction.
+- [ ] Endpoint-scoped `EmbeddedSessionThrottlerGuard` (stricter limit, e.g. 5 req/min) applied on top of the existing app-wide Redis-backed throttlers, since this is the module's only fully unauthenticated route.
+- [ ] `salla.appId` and `salla.embeddedApiUrl` added to config; `SALLA_APP_ID` / `SALLA_EMBEDDED_API_URL` documented as required env vars.
+- [ ] Fixed pre-existing config key mismatch: `salla.tokenRefreshWindow` renamed to `salla.tokenRefreshWindowSeconds` to match what `SallaTokenService.isTokenExpiringSoon()` actually reads (was silently ignoring `SALLA_TOKEN_REFRESH_WINDOW` and always falling back to the hardcoded default).
+- [ ] No refresh token is issued or stored for embedded sessions; renewal relies on the frontend re-verifying a fresh Salla embedded token (via `embedded.auth.refresh()`) against the same endpoint.
+
+**Branch Name:**
+`feature/salla-embedded-app-session`
+
+**Milestone:**
+`Sprint 03 — Salla Integration & OAuth`
+
+**Dependencies:**
+
+- Issue 05 — Implement Salla OAuth Callback
+- Issue 06 — Handle Salla Webhooks (`app.store.authorize`, `app.uninstalled`)
+- Issue 07 — Create Salla API Client
+
+**Notes:**
+This flow is separate from the server-to-server OAuth token stored per integration (`SallaIntegration.accessToken`), which continues to be used exclusively for Merchant API calls via `SallaTokenService.getValidAccessToken()`. The embedded session token is only used to establish identity for our own API, never to call Salla's Merchant API.
+
+**Plan Commit:**
+
+- Commit 1: `refactor(salla): extract BaseHttpClient and add SallaEmbeddedClient #61`
+- Commit 2: `feat(salla): add embedded session DTO/interfaces and onboarding flag #61`
+- Commit 3: `feat(auth,salla): add stateless access token issuance + embedded auth service #61`
+- Commit 4: `feat(salla): add embedded session endpoint with dedicated rate limit #61`
+- Commit 5: `fix(config): add embedded app config + fix silent tokenRefreshWindow typo #61`
+
+---
+
+### Pull Request 08
+
+**Title:** `feat: implement Salla Embedded App session flow`
+
+**Summary:**
+Adds backend support for Salla's Embedded App authentication flow, letting merchants open the app from the Salla dashboard and receive a verified, stateless application session without relying on cookies inside a third-party iframe context.
+
+**Related Issue:**
+Closes #21
+
+**Changes:**
+
+- Add `src/modules/salla/clients/base-http.client.ts` and refactor `salla-http.client.ts` to extend it.
+- Add `src/modules/salla/clients/salla-embedded.client.ts` (Introspect API client).
+- Add `src/modules/salla/services/salla-embedded-auth.service.ts`.
+- Add `src/modules/auth/auth.service.ts#issueStatelessAccessToken`.
+- Add `POST /integrations/salla/embedded/session` endpoint + `EmbeddedSessionThrottlerGuard`.
+- Add `Store.onboardingCompletedAt` field (schema/repository/service).
+- Update `salla.config.ts`: add `appId`, `embeddedApiUrl`; fix `tokenRefreshWindowSeconds` key mismatch.
+
+**Acceptance Criteria:**
+
+- [ ] All requirements from the related Issue are satisfied.
+- [ ] No unrelated changes are included.
+- [ ] Relevant tests/checks have been completed.
+
+**Validation:**
+Simulated valid/expired/invalid Salla embedded tokens against the Introspect API and verified: correct `nextStep` resolution for stores with/without `onboardingCompletedAt`, rejection of embedded tokens for merchants with no linked integration, and the dedicated throttle guard rejecting excess requests independently of the app-wide throttlers.
+
+**Checklist:**
+
+- [ ] Code follows project conventions.
+- [ ] No secrets or sensitive information are committed.
+- [ ] Tests were added/updated where applicable.
+- [ ] Documentation was updated if needed.
+- [ ] The PR is focused on the related Issue.
+
+## Issue 09 — Document Salla Integration Flow
 
 ### Issue (Documentation Template)
 
