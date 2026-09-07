@@ -6,7 +6,6 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { SallaApiClient } from './clients/salla-api.client';
 import { SallaEmbeddedClient } from './clients/salla-embedded.client';
 import { SallaHttpClient } from './clients/salla-http.client';
-import { EmbeddedSessionThrottlerGuard } from './guards/embedded-session-throttler.guard';
 import { SallaIntegrationRepository } from './repositories/salla-integration.repository';
 import { SallaIntegrationController } from './salla-integration.controller';
 import { SallaIntegrationService } from './salla-integration.service';
@@ -32,7 +31,6 @@ import { SallaTokenService } from './services/salla-token.service';
     SallaApiClient,
     SallaEmbeddedClient,
     SallaEmbeddedAuthService,
-    EmbeddedSessionThrottlerGuard,
   ],
   exports: [SallaIntegrationService, SallaTokenService],
 })

@@ -68,17 +68,20 @@ export class SallaIntegrationRepository {
         { sallaStoreId: trimmedSallaStoreId, isDeleted: { $ne: true } },
         {
           $set: {
-            storeId,
             accessToken: data.accessToken,
             refreshToken: data.refreshToken,
             scopes: data.scopes,
             merchantEmail: data.merchantEmail,
             merchantMobile: data.merchantMobile,
             status: SallaIntegrationStatus.Connected,
-            connectedAt: new Date(),
             lastRefreshedAt: new Date(),
           },
-          $setOnInsert: { sallaStoreId: trimmedSallaStoreId, isDeleted: false },
+          $setOnInsert: {
+            sallaStoreId: trimmedSallaStoreId,
+            storeId,
+            connectedAt: new Date(),
+            isDeleted: false,
+          },
         },
         { returnDocument: 'after', upsert: true, runValidators: true },
       )

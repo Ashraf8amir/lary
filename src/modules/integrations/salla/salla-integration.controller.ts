@@ -12,11 +12,10 @@ import {
   Param,
   Post,
   RawBody,
-  UseGuards,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { EmbeddedSessionDto } from './dtos/embedded-session.dto';
 import { SallaWebhookPayloadDto } from './dtos/salla-webhook.dto';
-import { EmbeddedSessionThrottlerGuard } from './guards/embedded-session-throttler.guard';
 import { SallaIntegrationService } from './salla-integration.service';
 import { SallaEmbeddedAuthService } from './services/salla-embedded-auth.service';
 
@@ -50,7 +49,7 @@ export class SallaIntegrationController {
   }
 
   @Public()
-  @UseGuards(EmbeddedSessionThrottlerGuard)
+  @Throttle({ long: { limit: 5, ttl: 60000 } })
   @Post('embedded/session')
   @HttpCode(HttpStatus.OK)
   @ResponseMessage('Embedded session created')

@@ -29,7 +29,7 @@ export class SallaTokenService {
   encryptTokens(
     accessToken: string,
     refreshToken: string,
-    expiresInSeconds: number,
+    expiresAt: Date,
   ): SallaTokensUpdatePayload {
     const encryptedAccess = this.encryptionService.encrypt(accessToken);
     const encryptedRefresh = this.encryptionService.encrypt(refreshToken);
@@ -39,7 +39,7 @@ export class SallaTokenService {
         encrypted: encryptedAccess.encrypted,
         iv: encryptedAccess.iv,
         authTag: encryptedAccess.authTag,
-        expiresAt: new Date(Date.now() + expiresInSeconds * 1000),
+        expiresAt: expiresAt,
       },
       refreshToken: {
         encrypted: encryptedRefresh.encrypted,
@@ -199,7 +199,7 @@ export class SallaTokenService {
     const newTokens = this.encryptTokens(
       tokenResponse.access_token,
       tokenResponse.refresh_token,
-      tokenResponse.expires_in,
+      new Date(Date.now() + tokenResponse.expires_in * 1000),
     );
 
     await this.integrationRepository.updateTokens(targetIntegration._id.toString(), newTokens);

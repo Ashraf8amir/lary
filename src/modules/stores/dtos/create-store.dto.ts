@@ -26,4 +26,9 @@ export class CreateStoreDto {
   @IsEnum(StorePlan)
   @IsOptional()
   planType?: StorePlan;
+
+  @IsString()
+  @IsOptional()
+  @Transform(({ value }: { value?: string }) => (typeof value === 'string' ? value.trim() : value))
+  avatar?: string;
 }

@@ -26,10 +26,6 @@ export class Store {
   })
   name!: string;
 
-  // Set once at creation time (whoever installs/registers the store).
-  // Intentionally omitted from UpdateStoreDto — ownership transfer should
-  // be its own explicit, audited operation, never a side effect of a
-  // generic PATCH.
   @Prop({
     type: Types.ObjectId,
     required: true,
@@ -60,6 +56,13 @@ export class Store {
     index: true,
   })
   planType!: StorePlan;
+
+  @Prop({
+    type: String,
+    required: false,
+    trim: true,
+  })
+  avatar?: string;
 
   @Prop({ type: Date, required: false })
   onboardingCompletedAt?: Date;

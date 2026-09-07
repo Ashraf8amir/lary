@@ -1,8 +1,9 @@
-import { ErrorCode } from '@common';
 import sallaConfig from '@/config/salla.config';
+import { ErrorCode } from '@common';
 import { HttpStatus, Inject, Injectable } from '@nestjs/common';
 import type { ConfigType } from '@nestjs/config';
 import axios, { AxiosRequestConfig } from 'axios';
+
 import { SallaApiException } from '../exceptions/salla.exception';
 import { BaseHttpClient } from './base-http.client';
 
@@ -15,7 +16,10 @@ interface SallaErrorBody {
 
 @Injectable()
 export class SallaHttpClient extends BaseHttpClient {
-  constructor(@Inject(sallaConfig.KEY) config: ConfigType<typeof sallaConfig>) {
+  constructor(
+    @Inject(sallaConfig.KEY)
+    config: ConfigType<typeof sallaConfig>,
+  ) {
     super(SallaHttpClient.name, {
       baseURL: config.baseUrl,
     });
@@ -37,65 +41,132 @@ export class SallaHttpClient extends BaseHttpClient {
 
   async postFormUrlEncoded<T>(url: string, data: Record<string, string>): Promise<T> {
     const params = new URLSearchParams(data);
+
     return super.post<T>(url, params.toString(), {
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
     });
   }
 
   protected handleError(error: unknown): never {
-    if (axios.isAxiosError(error)) {
-      const status = error.response?.status;
-      const data = error.response?.data as SallaErrorBody | undefined;
-
-      if (status === HttpStatus.TOO_MANY_REQUESTS) {
-        this.logger.warn(`Salla API rate limited: ${error.config?.url}`);
-        throw new SallaApiException('Salla API rate limited', {
-          statusCode: HttpStatus.TOO_MANY_REQUESTS,
-          errorCode: ErrorCode.SALLA_RATE_LIMITED,
-        });
-      }
-
-      if (status === HttpStatus.UNAUTHORIZED) {
-        throw new SallaApiException('Salla API unauthorized', {
-          statusCode: HttpStatus.UNAUTHORIZED,
-          errorCode: ErrorCode.SALLA_AUTHORIZATION_FAILED,
-        });
-      }
-
-      if (status === HttpStatus.BAD_REQUEST && data?.error === 'invalid_grant') {
-        this.logger.warn(
-          `Salla invalid_grant: ${data.error_description ?? 'authorization code or refresh token invalid'}`,
-        );
-        throw new SallaApiException(data.error_description ?? 'Invalid grant', {
-          statusCode: HttpStatus.BAD_REQUEST,
-          errorCode: ErrorCode.SALLA_AUTHORIZATION_FAILED,
-        });
-      }
-
-      if (status === HttpStatus.BAD_REQUEST && data?.error === 'invalid_client') {
-        this.logger.error('Salla invalid_client: client credentials are invalid');
-        throw new SallaApiException('Invalid client credentials', {
-          statusCode: HttpStatus.UNAUTHORIZED,
-          errorCode: ErrorCode.SALLA_AUTHORIZATION_FAILED,
-        });
-      }
-
-      if (status && status >= 500) {
-        this.logger.error(`Salla API server error: ${status} - ${error.config?.url}`);
-      }
-
-      throw new SallaApiException(
-        data?.error_description ??
-          data?.message ??
-          data?.error ??
-          `Salla API error: ${status ?? 'unknown'}`,
-        {
-          statusCode: status ?? HttpStatus.INTERNAL_SERVER_ERROR,
-          errorCode: ErrorCode.SALLA_API_ERROR,
-        },
-      );
+    if (!axios.isAxiosError(error)) {
+      throw error;
     }
 
-    throw error;
+    const status = error.response?.status;
+    const data = error.response?.data as SallaErrorBody | undefined;
+
+    /*
+     * Network error / timeout
+     *
+     * No response means the request didn't successfully reach
+     * Salla or we didn't receive a response from them.
+     */
+    if (!status) {
+      this.logger.error(`Salla API request failed: ${this.getAxiosErrorMessage(error)}`);
+
+      throw new SallaApiException('Salla API is currently unavailable', {
+        statusCode: HttpStatus.BAD_GATEWAY,
+        errorCode: ErrorCode.SALLA_API_ERROR,
+      });
+    }
+
+    /*
+     * Rate limit
+     */
+    if (status === HttpStatus.TOO_MANY_REQUESTS) {
+      this.logger.warn(
+        `Salla API rate limited: ${error.config?.method?.toUpperCase()} ${error.config?.url}`,
+      );
+
+      throw new SallaApiException('Salla API rate limit exceeded', {
+        statusCode: HttpStatus.TOO_MANY_REQUESTS,
+        errorCode: ErrorCode.SALLA_RATE_LIMITED,
+      });
+    }
+
+    /*
+     * Unauthorized
+     *
+     * Usually means the access token is invalid/expired.
+     */
+    if (status === HttpStatus.UNAUTHORIZED) {
+      this.logger.warn(
+        `Salla API unauthorized: ${error.config?.method?.toUpperCase()} ${error.config?.url}`,
+      );
+
+      throw new SallaApiException('Salla API authorization failed', {
+        statusCode: HttpStatus.UNAUTHORIZED,
+        errorCode: ErrorCode.SALLA_AUTHORIZATION_FAILED,
+      });
+    }
+
+    /*
+     * OAuth invalid_grant
+     *
+     * Usually caused by an invalid/expired/rotated refresh token.
+     */
+    if (status === HttpStatus.BAD_REQUEST && data?.error === 'invalid_grant') {
+      this.logger.warn('Salla OAuth invalid_grant received');
+
+      throw new SallaApiException(data.error_description ?? 'Invalid Salla grant', {
+        statusCode: HttpStatus.BAD_REQUEST,
+        errorCode: ErrorCode.SALLA_AUTHORIZATION_FAILED,
+      });
+    }
+
+    /*
+     * OAuth invalid_client
+     *
+     * This is NOT a user's authentication failure.
+     * It indicates that our Salla client credentials are invalid.
+     */
+    if (status === HttpStatus.BAD_REQUEST && data?.error === 'invalid_client') {
+      this.logger.error('Salla OAuth invalid_client: client credentials are invalid');
+
+      throw new SallaApiException('Salla OAuth client configuration is invalid', {
+        statusCode: HttpStatus.BAD_GATEWAY,
+        errorCode: ErrorCode.SALLA_API_ERROR,
+      });
+    }
+
+    /*
+     * Salla server-side failure
+     */
+    if (status >= HttpStatus.INTERNAL_SERVER_ERROR) {
+      this.logger.error(
+        `Salla API server error: ${status} - ${error.config?.method?.toUpperCase()} ${error.config?.url}`,
+      );
+
+      throw new SallaApiException('Salla API is currently unavailable', {
+        statusCode: HttpStatus.BAD_GATEWAY,
+        errorCode: ErrorCode.SALLA_API_ERROR,
+      });
+    }
+
+    /*
+     * Other Salla API errors
+     */
+    throw new SallaApiException(this.getSallaErrorMessage(data, status), {
+      statusCode: status,
+      errorCode: ErrorCode.SALLA_API_ERROR,
+    });
+  }
+
+  private getSallaErrorMessage(data: SallaErrorBody | undefined, status: number): string {
+    return data?.error_description ?? data?.message ?? data?.error ?? `Salla API error: ${status}`;
+  }
+
+  private getAxiosErrorMessage(error: unknown): string {
+    if (!axios.isAxiosError(error)) {
+      return 'Unknown error';
+    }
+
+    if (error.code === 'ECONNABORTED') {
+      return 'Request timeout';
+    }
+
+    return error.message;
   }
 }

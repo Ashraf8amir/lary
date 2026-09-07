@@ -30,16 +30,6 @@ export class SallaAppAuthorizeDataDto {
   app_name?: string;
 }
 
-export class SallaAppUninstalledDataDto {
-  @IsOptional()
-  @IsString()
-  source?: string;
-
-  @IsOptional()
-  @IsString()
-  reason?: string;
-}
-
 export class SallaWebhookPayloadDto {
   @IsString()
   @IsNotEmpty()

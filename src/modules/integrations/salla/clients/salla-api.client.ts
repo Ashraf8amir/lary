@@ -1,7 +1,7 @@
 import sallaConfig from '@/config/salla.config';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import type { ConfigType } from '@nestjs/config';
-import type { SallaUserInfo } from '../interfaces/salla-api.interface';
+import type { SallaApiResponse, SallaUserInfo } from '../interfaces/salla-api.interface';
 import type { SallaRefreshTokenResponse } from '../interfaces/salla-oauth.interface';
 import { SallaHttpClient } from './salla-http.client';
 
@@ -38,9 +38,12 @@ export class SallaApiClient {
 
   async getUserInfo(accessToken: string): Promise<SallaUserInfo> {
     this.logger.debug('Fetching Salla merchant profile info');
-    return this.httpClient.getAuthenticated<SallaUserInfo>(
+
+    const response = await this.httpClient.getAuthenticated<SallaApiResponse<SallaUserInfo>>(
       `${this.oauthUrl}/oauth2/user/info`,
       accessToken,
     );
+
+    return response.data;
   }
 }

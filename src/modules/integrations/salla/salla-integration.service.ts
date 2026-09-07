@@ -1,12 +1,13 @@
+import sallaConfig from '@/config/salla.config';
 import { BusinessException, ErrorCode } from '@common';
 import { StoresService } from '@modules/stores/stores.service';
-import sallaConfig from '@/config/salla.config';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import type { ConfigType } from '@nestjs/config';
 import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
 import { createHmac, timingSafeEqual } from 'node:crypto';
 
+import { StorePlan } from '@/modules/stores/enums/store-plan.enum';
 import { StoreStatus } from '@/modules/stores/enums/store-status.enum';
 import { UsersService } from '@/modules/users/users.service';
 import { SallaApiClient } from './clients/salla-api.client';
@@ -19,8 +20,10 @@ import { SallaTokenService } from './services/salla-token.service';
 interface MerchantProfile {
   name: string;
   email: string;
-  mobile?: string;
   storeName: string;
+  mobile?: string;
+  avatar?: string;
+  planType?: StorePlan;
 }
 
 @Injectable()
@@ -28,11 +31,11 @@ export class SallaIntegrationService {
   private readonly logger = new Logger(SallaIntegrationService.name);
 
   constructor(
+    @Inject(sallaConfig.KEY)
+    private readonly config: ConfigType<typeof sallaConfig>,
     private readonly integrationRepository: SallaIntegrationRepository,
     private readonly sallaTokenService: SallaTokenService,
     private readonly storesService: StoresService,
-    @Inject(sallaConfig.KEY)
-    private readonly config: ConfigType<typeof sallaConfig>,
     private readonly usersService: UsersService,
     private readonly sallaApiClient: SallaApiClient,
   ) {}
@@ -42,7 +45,7 @@ export class SallaIntegrationService {
     rawBody: Buffer,
     signature?: string,
   ): Promise<void> {
-    this.validateWebhookSignature(rawBody, signature);
+    this.verifyWebhookSignature(rawBody, signature);
 
     const merchantId = payload.merchant.toString();
 
@@ -118,7 +121,7 @@ export class SallaIntegrationService {
     const tokenData = this.sallaTokenService.encryptTokens(
       authorizeData.access_token,
       authorizeData.refresh_token,
-      authorizeData.expires,
+      new Date(authorizeData.expires * 1000),
     );
 
     const integration = await this.integrationRepository.linkAndActivate(
@@ -130,7 +133,12 @@ export class SallaIntegrationService {
         refreshToken: tokenData.refreshToken,
         scopes: authorizeData.scope ? authorizeData.scope.split(' ') : [],
       },
-      () => this.createStoreForMerchant(user._id.toString(), merchantProfile.storeName),
+      () =>
+        this.createStoreForMerchant(user._id.toString(), {
+          storeName: merchantProfile.storeName,
+          avatar: merchantProfile.avatar,
+          planType: merchantProfile.planType as StorePlan,
+        }),
     );
 
     this.logger.log(
@@ -159,11 +167,16 @@ export class SallaIntegrationService {
     );
   }
 
-  private async createStoreForMerchant(ownerId: string, storeName: string): Promise<string> {
+  private async createStoreForMerchant(
+    ownerId: string,
+    storeData: { storeName: string; avatar?: string; planType?: StorePlan },
+  ): Promise<string> {
     const store = await this.storesService.create({
-      name: storeName,
+      name: storeData.storeName,
       ownerId,
       platform: 'salla',
+      avatar: storeData.avatar,
+      planType: storeData.planType ?? StorePlan.Free,
     });
 
     return store._id.toString();
@@ -208,43 +221,55 @@ export class SallaIntegrationService {
       });
     }
 
-    // if (!userInfo?.email) {
-    //   throw new BusinessException('Salla did not return a merchant email', {
-    //     errorCode: ErrorCode.SALLA_API_ERROR,
-    //   });
-    // }
+    if (!userInfo?.email) {
+      throw new BusinessException('Salla did not return a merchant email', {
+        errorCode: ErrorCode.SALLA_API_ERROR,
+      });
+    }
 
     return {
-      name: userInfo.name || `Merchant ${sallaMerchantId}`,
-      email: userInfo.email || `merchant-${sallaMerchantId}@salla.com`,
+      name: userInfo.name ?? `Merchant ${sallaMerchantId}`,
+      email: userInfo.email,
       mobile: userInfo.mobile,
-      storeName: userInfo.name ? `${userInfo.name} Store` : `Store ${sallaMerchantId}`,
+      storeName: userInfo.merchant?.name ? `${userInfo.merchant.name}` : `Store ${sallaMerchantId}`,
+      planType: userInfo.merchant?.plan as StorePlan,
+      avatar: userInfo.merchant?.avatar,
     };
   }
 
-  private validateWebhookSignature(rawBody: Buffer | string, receivedSignature?: string): void {
-    if (!this.verifySignature(rawBody, receivedSignature)) {
+  private verifyWebhookSignature(rawBody: Buffer, signature?: string): void {
+    if (!signature) {
+      this.logger.warn('Webhook received without x-salla-signature header');
+
+      throw new BusinessException('Missing webhook signature', {
+        errorCode: ErrorCode.UNAUTHORIZED,
+      });
+    }
+
+    if (!/^[a-f0-9]{64}$/i.test(signature)) {
+      this.logger.warn('Webhook signature format is invalid');
+
       throw new BusinessException('Invalid webhook signature', {
         errorCode: ErrorCode.UNAUTHORIZED,
       });
     }
-  }
 
-  private verifySignature(rawBody: Buffer | string, receivedSignature?: string): boolean {
-    if (!receivedSignature) {
-      return false;
+    const expectedSignature = createHmac('sha256', this.config.webhookSecret)
+      .update(rawBody)
+      .digest();
+
+    const receivedSignature = Buffer.from(signature, 'hex');
+
+    const isValid =
+      receivedSignature.length === expectedSignature.length &&
+      timingSafeEqual(receivedSignature, expectedSignature);
+
+    if (!isValid) {
+      this.logger.warn('Webhook signature mismatch detected');
+
+      throw new BusinessException('Invalid webhook signature', {
+        errorCode: ErrorCode.UNAUTHORIZED,
+      });
     }
-
-    const webhookSecret = this.config.webhookSecret;
-    const computedSignature = createHmac('sha256', webhookSecret).update(rawBody).digest('hex');
-
-    const receivedBuffer = Buffer.from(receivedSignature, 'utf8');
-    const computedBuffer = Buffer.from(computedSignature, 'utf8');
-
-    if (receivedBuffer.length !== computedBuffer.length) {
-      return false;
-    }
-
-    return timingSafeEqual(receivedBuffer, computedBuffer);
   }
 }
