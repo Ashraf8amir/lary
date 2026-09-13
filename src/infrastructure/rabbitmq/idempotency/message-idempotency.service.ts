@@ -33,7 +33,7 @@ export class MessageIdempotencyService {
     return this.repository.reclaimStaleProcessing(messageId, staleBefore);
   }
 
-  async markCompleted(messageId: string, session: ClientSession): Promise<void> {
+  async markCompleted(messageId: string, session?: ClientSession): Promise<void> {
     await this.repository.markAsCompleted(messageId, session);
   }
 

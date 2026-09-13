@@ -53,6 +53,31 @@ export class RabbitMqMessageHandler {
     }
   }
 
+  async executeWithoutTransaction<T>(
+    message: RabbitMqMessage<T>,
+    handler: () => Promise<void>,
+  ): Promise<void | Nack> {
+    const shouldProcess = await this.idempotencyService.startProcessing(
+      message.messageId,
+      message.event,
+    );
+
+    if (!shouldProcess) {
+      this.logger.warn(`Duplicate or active message ignored: ${message.messageId}`);
+      return;
+    }
+
+    try {
+      await handler();
+      await this.idempotencyService.markCompleted(message.messageId);
+
+      this.logger.debug(`Message processed successfully: ${message.messageId}`);
+      return;
+    } catch (error) {
+      return this.handleProcessingError(message, error);
+    }
+  }
+
   private async handleProcessingError<T>(
     message: RabbitMqMessage<T>,
     error: unknown,

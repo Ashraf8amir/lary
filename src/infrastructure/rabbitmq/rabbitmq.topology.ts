@@ -1,6 +1,5 @@
+import { GLOBAL_DLX } from './rabbitmq.constant';
 import { DomainConfig } from './rabbitmq.domains.config';
-
-export const GLOBAL_DLX = 'app.dlx';
 
 export interface GeneratedExchange {
   name: string;

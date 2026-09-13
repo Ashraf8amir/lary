@@ -1,8 +1,11 @@
 import { RabbitMQConfig, RabbitMQModule } from '@golevelup/nestjs-rabbitmq';
 import { Module } from '@nestjs/common';
-import { ConfigModule, ConfigService } from '@nestjs/config';
+import { ConfigModule, ConfigType } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
 
+import { Environment } from '@/common/enums/environment.enum';
+import appConfig from '@/config/app.config';
+import rabbitmqConfig from '@/config/rabbitmq.config';
 import { MessageIdempotencyRepository } from './idempotency/message-idempotency.repository';
 import {
   MessageIdempotency,
@@ -16,23 +19,21 @@ import { RabbitMqRetryPolicy } from './retry/rabbitmq-retry.policy';
 import { RabbitMqRetryPublisher } from './retry/rabbitmq-retry.publisher';
 
 const { exchanges, queues } = buildRabbitMqTopology(DOMAINS);
+type RabbitMqEnvConfig = ConfigType<typeof rabbitmqConfig>;
+type AppConfig = ConfigType<typeof appConfig>;
 
 @Module({
   imports: [
     ConfigModule,
     MongooseModule.forFeature([
-      {
-        name: MessageIdempotency.name,
-        schema: MessageIdempotencySchema,
-      },
+      { name: MessageIdempotency.name, schema: MessageIdempotencySchema },
     ]),
     RabbitMQModule.forRootAsync({
-      imports: [ConfigModule],
-      inject: [ConfigService],
+      inject: [rabbitmqConfig.KEY, appConfig.KEY],
 
-      useFactory: (configService: ConfigService): RabbitMQConfig => {
-        const isProd = configService.getOrThrow<string>('NODE_ENV') === 'production';
-        const rawUri = configService.getOrThrow<string>('RABBITMQ_URI');
+      useFactory: (rabbitmqCfg: RabbitMqEnvConfig, appCfg: AppConfig): RabbitMQConfig => {
+        const isProd = appCfg.nodeEnv === Environment.Production;
+        const rawUri = rabbitmqCfg.uri;
 
         return {
           uri: rawUri.includes(',') ? rawUri.split(',').map((u) => u.trim()) : rawUri,
