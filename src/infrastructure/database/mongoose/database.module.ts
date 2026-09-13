@@ -1,3 +1,4 @@
+import { Environment } from '@/common/enums/environment.enum';
 import appConfig from '@/config/app.config';
 import databaseConfig from '@/config/database.config';
 import { Module } from '@nestjs/common';
@@ -25,7 +26,7 @@ type DatabaseConfig = ConfigType<typeof databaseConfig>;
         serverSelectionTimeoutMS: databaseCfg.serverSelectionTimeoutMS,
 
         retryWrites: true,
-        autoIndex: appCfg.nodeEnv !== 'production',
+        autoIndex: appCfg.nodeEnv !== Environment.Production,
       }),
     }),
   ],

@@ -47,29 +47,17 @@ export class MessageIdempotencyRepository {
         status: MessageProcessingStatus.PROCESSING,
         startedAt: { $lt: staleBefore },
       },
-      {
-        $set: { startedAt: new Date() },
-      },
+      { $set: { startedAt: new Date() } },
     );
 
     return result.modifiedCount === 1;
   }
 
-  async markAsCompleted(messageId: string, session: ClientSession): Promise<void> {
+  async markAsCompleted(messageId: string, session?: ClientSession): Promise<void> {
     const result = await this.model.updateOne(
-      {
-        messageId,
-        status: MessageProcessingStatus.PROCESSING,
-      },
-      {
-        $set: {
-          status: MessageProcessingStatus.COMPLETED,
-          completedAt: new Date(),
-        },
-      },
-      {
-        session,
-      },
+      { messageId, status: MessageProcessingStatus.PROCESSING },
+      { $set: { status: MessageProcessingStatus.COMPLETED, completedAt: new Date() } },
+      { session },
     );
 
     if (result.modifiedCount !== 1) {
@@ -91,6 +79,7 @@ export class MessageIdempotencyRepository {
       },
     );
   }
+
   async deleteByMessageId(messageId: string): Promise<void> {
     await this.model.deleteOne({ messageId });
   }
