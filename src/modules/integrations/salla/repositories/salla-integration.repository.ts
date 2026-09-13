@@ -160,4 +160,8 @@ export class SallaIntegrationRepository {
       })
       .exec();
   }
+
+  async findAllByStatus(status: SallaIntegrationStatus): Promise<SallaIntegrationDocument[]> {
+    return this.integrationModel.find({ status, isDeleted: { $ne: true } }).exec();
+  }
 }

@@ -1,11 +1,18 @@
-import { AuthModule } from '@/modules/auth/auth.module';
-import { StoresModule } from '@modules/stores/stores.module';
-import { UsersModule } from '@modules/users/users.module';
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
+
+import { RabbitMqInfrastructureModule } from '@/infrastructure/rabbitmq/rabbitmq.module';
+import { AuthModule } from '@/modules/auth/auth.module';
+import { ProductsModule } from '@/modules/products/products.module';
+import { StoresModule } from '@modules/stores/stores.module';
+import { UsersModule } from '@modules/users/users.module';
+
 import { SallaApiClient } from './clients/salla-api.client';
 import { SallaEmbeddedClient } from './clients/salla-embedded.client';
 import { SallaHttpClient } from './clients/salla-http.client';
+import { SallaProductSyncConsumer } from './queue/consumers/salla-product-sync.consumer';
+import { SallaReconciliationJob } from './queue/jobs/salla-reconciliation.job';
+import { SallaProductSyncPublisher } from './queue/publishers/salla-product-sync.publisher';
 import { SallaIntegrationRepository } from './repositories/salla-integration.repository';
 import { SallaIntegrationController } from './salla-integration.controller';
 import { SallaIntegrationService } from './salla-integration.service';
@@ -20,6 +27,8 @@ import { SallaTokenService } from './services/salla-token.service';
     UsersModule,
     StoresModule,
     AuthModule,
+    RabbitMqInfrastructureModule,
+    ProductsModule,
   ],
   controllers: [SallaIntegrationController],
   providers: [
@@ -31,6 +40,9 @@ import { SallaTokenService } from './services/salla-token.service';
     SallaApiClient,
     SallaEmbeddedClient,
     SallaEmbeddedAuthService,
+    SallaProductSyncPublisher,
+    SallaProductSyncConsumer,
+    SallaReconciliationJob,
   ],
   exports: [SallaIntegrationService, SallaTokenService],
 })

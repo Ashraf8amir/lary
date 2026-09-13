@@ -15,6 +15,7 @@ import { SallaAppAuthorizeDataDto, SallaWebhookPayloadDto } from './dtos/salla-w
 import { SallaIntegrationStatus } from './enums/salla-integration-status.enum';
 import { SallaUserInfo } from './interfaces/salla-api.interface';
 import { SallaIntegrationRepository } from './repositories/salla-integration.repository';
+import { SallaSyncService } from './services/salla-sync.service';
 import { SallaTokenService } from './services/salla-token.service';
 
 interface MerchantProfile {
@@ -38,6 +39,7 @@ export class SallaIntegrationService {
     private readonly storesService: StoresService,
     private readonly usersService: UsersService,
     private readonly sallaApiClient: SallaApiClient,
+    private readonly sallaSyncService: SallaSyncService,
   ) {}
 
   async handleWebhook(
@@ -140,6 +142,8 @@ export class SallaIntegrationService {
           planType: merchantProfile.planType as StorePlan,
         }),
     );
+
+    await this.sallaSyncService.triggerFullSync(integration.storeId.toString());
 
     this.logger.log(
       `Salla integration activated for store ${integration.storeId.toString()} linked to user ${user.email} (Merchant: ${sallaMerchantId})`,
