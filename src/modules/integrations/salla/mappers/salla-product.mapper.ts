@@ -15,25 +15,23 @@ const PLATFORM = 'salla';
 export type OptionValueLookup = Map<number, { optionName: string; value: string }>;
 
 export class SallaProductMapper {
-  static toUpsertPayload(
-    item: SallaProductListItem,
-    storeId: string,
-    hasVariants: boolean,
-  ): ProductUpsertPayload {
+  static toUpsertPayload(item: SallaProductListItem, storeId: string): ProductUpsertPayload {
+    const hasVariants = (item.skus?.length ?? 0) > 0;
+
     return {
       storeId,
       externalId: item.id.toString(),
       platform: PLATFORM,
       name: item.name,
       description: item.description,
-      category: item.category?.name,
-      imageUrl: item.images?.[0]?.url,
-      productUrl: item.url,
+      category: item.categories?.[0]?.name,
+      imageUrl: item.thumbnail,
+      productUrl: item.urls?.customer,
       hasVariants,
       priceAmount: item.price.amount,
       currency: item.price.currency,
-      stockQuantity: item.quantity,
-      status: this.mapStatus(item.status),
+      stockQuantity: Number(item.quantity),
+      status: this.mapStatus(item),
     };
   }
 
@@ -77,20 +75,16 @@ export class SallaProductMapper {
 
     for (const valueId of relatedOptionValueIds) {
       const match = lookup.get(valueId);
-
-      if (!match) {
-        continue;
-      }
-
+      if (!match) continue; // see prior note: partial data beats dropping the variant
       resolved.push(match);
     }
 
     return resolved;
   }
 
-  private static mapStatus(sallaStatus: SallaProductListItem['status']): ProductStatus {
-    if (sallaStatus === 'out') return ProductStatus.OutOfStock;
-    if (sallaStatus === 'hidden') return ProductStatus.Hidden;
+  private static mapStatus(item: SallaProductListItem): ProductStatus {
+    if (!item.is_available || item.status === 'out') return ProductStatus.OutOfStock;
+    if (item.status === 'hidden') return ProductStatus.Hidden;
     return ProductStatus.Available;
   }
 }

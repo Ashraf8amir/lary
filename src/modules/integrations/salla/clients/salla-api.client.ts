@@ -3,6 +3,10 @@ import { Inject, Injectable, Logger } from '@nestjs/common';
 import type { ConfigType } from '@nestjs/config';
 import type { SallaApiResponse, SallaUserInfo } from '../interfaces/salla-api.interface';
 import type { SallaRefreshTokenResponse } from '../interfaces/salla-oauth.interface';
+import {
+  SallaProductListItem,
+  SallaProductListResponse,
+} from '../interfaces/salla-product.interface';
 import { SallaHttpClient } from './salla-http.client';
 
 @Injectable()
@@ -45,5 +49,22 @@ export class SallaApiClient {
     );
 
     return response.data;
+  }
+
+  async listProducts(accessToken: string, page: number): Promise<SallaProductListResponse> {
+    this.logger.debug(`Fetching Salla products page ${page}`);
+    return this.httpClient.getAuthenticated<SallaProductListResponse>(
+      `${this.baseUrl}/products`,
+      accessToken,
+      { params: { page } },
+    );
+  }
+
+  async getProduct(
+    accessToken: string,
+    productId: string,
+  ): Promise<{ status: number; success: boolean; data: SallaProductListItem }> {
+    this.logger.debug(`Fetching Salla product ${productId}`);
+    return this.httpClient.getAuthenticated(`${this.baseUrl}/products/${productId}`, accessToken);
   }
 }
