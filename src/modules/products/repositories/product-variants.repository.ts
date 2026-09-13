@@ -14,6 +14,7 @@ export class ProductVariantsRepository {
   async upsert(
     productId: string,
     payload: ProductVariantUpsertPayload,
+    session?: ClientSession,
   ): Promise<ProductVariantDocument> {
     return this.variantModel
       .findOneAndUpdate(
@@ -34,7 +35,7 @@ export class ProductVariantsRepository {
             lastSyncedAt: new Date(),
           },
         },
-        { upsert: true, returnDocument: 'after', runValidators: true },
+        { upsert: true, returnDocument: 'after', runValidators: true, session },
       )
       .exec();
   }

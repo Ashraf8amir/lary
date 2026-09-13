@@ -12,6 +12,7 @@ import {
   MessageIdempotencySchema,
 } from './idempotency/message-idempotency.schema';
 import { MessageIdempotencyService } from './idempotency/message-idempotency.service';
+import { RabbitMqEventPublisherService } from './publisher/rabbitmq-event-publisher.service';
 import { DOMAINS } from './rabbitmq.domains.config';
 import { RabbitMqMessageHandler } from './rabbitmq.message-handler';
 import { buildRabbitMqTopology } from './rabbitmq.topology';
@@ -60,6 +61,7 @@ type AppConfig = ConfigType<typeof appConfig>;
     RabbitMqMessageHandler,
     RabbitMqRetryPolicy,
     RabbitMqRetryPublisher,
+    RabbitMqEventPublisherService,
 
     MessageIdempotencyRepository,
     MessageIdempotencyService,
@@ -70,6 +72,7 @@ type AppConfig = ConfigType<typeof appConfig>;
     RabbitMqMessageHandler,
     RabbitMqRetryPolicy,
     RabbitMqRetryPublisher,
+    RabbitMqEventPublisherService,
 
     MessageIdempotencyService,
   ],

@@ -12,7 +12,7 @@ export class ProductsRepository {
     private readonly productModel: Model<ProductDocument>,
   ) {}
 
-  async upsert(payload: ProductUpsertPayload): Promise<ProductDocument> {
+  async upsert(payload: ProductUpsertPayload, session?: ClientSession): Promise<ProductDocument> {
     return this.productModel
       .findOneAndUpdate(
         {
@@ -35,7 +35,7 @@ export class ProductsRepository {
             lastSyncedAt: new Date(),
           },
         },
-        { upsert: true, returnDocument: 'after', runValidators: true },
+        { upsert: true, returnDocument: 'after', runValidators: true, session },
       )
       .exec();
   }
@@ -77,6 +77,7 @@ export class ProductsRepository {
     storeId: string,
     platform: string,
     externalId: string,
+    session?: ClientSession,
   ): Promise<boolean> {
     if (!isValidObjectId(storeId)) return false;
 
@@ -84,6 +85,7 @@ export class ProductsRepository {
       .updateOne(
         { storeId: new Types.ObjectId(storeId), platform, externalId },
         { $set: { status: ProductStatus.Hidden, lastSyncedAt: new Date() } },
+        { session },
       )
       .exec();
 
