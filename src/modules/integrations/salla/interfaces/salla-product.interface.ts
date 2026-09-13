@@ -25,7 +25,25 @@ export interface SallaProductVariant {
 }
 
 export interface SallaProductCategory {
+  id: number;
   name: string;
+}
+
+export interface SallaProductImage {
+  id: number;
+  url: string;
+  main: boolean;
+  alt?: string;
+  video_url?: string | null;
+  type: string;
+  sort?: number;
+}
+
+export interface SallaMainImage {
+  id: number;
+  url: string;
+  video_url?: string | null;
+  type: string;
 }
 
 export interface SallaProductListItem {
@@ -33,10 +51,11 @@ export interface SallaProductListItem {
   name: string;
   description?: string;
   price: SallaMoney;
-  quantity: string;
+  quantity: number;
   status: 'sale' | 'out' | 'hidden';
   is_available: boolean;
-  thumbnail?: string;
+  main_image?: SallaMainImage | null;
+  images?: SallaProductImage[];
   urls?: { customer?: string; admin?: string };
   categories?: SallaProductCategory[];
   options?: SallaProductOption[];

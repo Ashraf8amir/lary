@@ -25,12 +25,12 @@ export class SallaProductMapper {
       name: item.name,
       description: item.description,
       category: item.categories?.[0]?.name,
-      imageUrl: item.thumbnail,
+      imageUrl: this.resolveImageUrl(item),
       productUrl: item.urls?.customer,
       hasVariants,
       priceAmount: item.price.amount,
       currency: item.price.currency,
-      stockQuantity: Number(item.quantity),
+      stockQuantity: item.quantity,
       status: this.mapStatus(item),
     };
   }
@@ -86,5 +86,9 @@ export class SallaProductMapper {
     if (!item.is_available || item.status === 'out') return ProductStatus.OutOfStock;
     if (item.status === 'hidden') return ProductStatus.Hidden;
     return ProductStatus.Available;
+  }
+
+  private static resolveImageUrl(item: SallaProductListItem): string | undefined {
+    return item.main_image?.url ?? item.images?.find((img) => img.main)?.url;
   }
 }

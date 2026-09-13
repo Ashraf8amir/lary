@@ -65,7 +65,12 @@ export class SallaIntegrationService {
         break;
 
       case 'product.created':
-      case 'product.updated':
+      case 'product.price.updated':
+      case 'product.status.updated':
+      case 'product.image.updated':
+      case 'product.category.updated':
+      case 'product.brand.updated':
+      case 'product.tags.updated':
         await this.handleProductChanged(payload.data, merchantId);
         break;
 
@@ -332,12 +337,11 @@ export class SallaIntegrationService {
     data: Record<string, unknown> | undefined,
     sallaMerchantId: string,
   ): string | null {
-    const rawId = data?.id ?? (data?.data as Record<string, unknown> | undefined)?.id;
+    const rawId = data?.id;
 
     if (rawId === undefined || rawId === null) {
       this.logger.warn(
-        `Could not extract product id from webhook payload for merchant ${sallaMerchantId}. ` +
-          `Verify the actual payload shape against a real webhook delivery.`,
+        `Could not extract product id from webhook payload for merchant ${sallaMerchantId}`,
       );
       return null;
     }
