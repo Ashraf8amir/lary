@@ -22,6 +22,7 @@ import { LoggerMiddleware } from '@common/middlewares/logger.middleware';
 
 import { HealthModule } from '@modules/health/health.module';
 import { ThrottlerStorageRedisService } from '@nest-lab/throttler-storage-redis';
+import { ScheduleModule } from '@nestjs/schedule';
 import Redis from 'ioredis';
 import { AppService } from './app.service';
 import { BusinessException, ErrorCode } from './common';
@@ -63,6 +64,7 @@ import { UsersModule } from './modules/users/users.module';
         storage: new ThrottlerStorageRedisService(redisClient),
       }),
     }),
+    ScheduleModule.forRoot(),
 
     HealthModule,
     UsersModule,

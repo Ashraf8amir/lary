@@ -16,4 +16,9 @@ export class SallaSyncService {
     this.logger.log(`Queuing incremental sync for product ${sallaProductId} (store ${storeId})`);
     await this.publisher.publishIncrementalSync(storeId, sallaProductId);
   }
+
+  async triggerProductDeleted(storeId: string, sallaProductId: string): Promise<void> {
+    this.logger.log(`Queuing deletion for product ${sallaProductId} (store ${storeId})`);
+    await this.publisher.publishProductDeleted(storeId, sallaProductId);
+  }
 }

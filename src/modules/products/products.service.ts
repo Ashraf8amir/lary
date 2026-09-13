@@ -88,4 +88,22 @@ export class ProductsService {
 
     return staleProducts.length;
   }
+
+  async markDeletedByExternalId(
+    storeId: string,
+    platform: string,
+    externalId: string,
+  ): Promise<void> {
+    const wasFound = await this.productsRepository.markHiddenByExternalId(
+      storeId,
+      platform,
+      externalId,
+    );
+
+    if (!wasFound) {
+      this.logger.warn(
+        `product.deleted for unknown product ${externalId} (store ${storeId}, platform ${platform}) — nothing to hide`,
+      );
+    }
+  }
 }

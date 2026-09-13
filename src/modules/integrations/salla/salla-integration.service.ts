@@ -64,6 +64,15 @@ export class SallaIntegrationService {
         await this.handleAppUninstalled(merchantId);
         break;
 
+      case 'product.created':
+      case 'product.updated':
+        await this.handleProductChanged(payload.data, merchantId);
+        break;
+
+      case 'product.deleted':
+        await this.handleProductDeleted(payload.data, merchantId);
+        break;
+
       default:
         this.logger.debug(`Ignored unhandled Salla event: ${payload.event}`);
     }
@@ -275,5 +284,64 @@ export class SallaIntegrationService {
         errorCode: ErrorCode.UNAUTHORIZED,
       });
     }
+  }
+
+  private async handleProductChanged(
+    data: Record<string, unknown> | undefined,
+    sallaMerchantId: string,
+  ): Promise<void> {
+    const sallaProductId = this.extractProductId(data, sallaMerchantId);
+    if (!sallaProductId) return;
+
+    const integration = await this.integrationRepository.findBySallaStoreId(sallaMerchantId);
+    if (!integration) {
+      this.logger.warn(
+        `product.created/updated for merchant ${sallaMerchantId} with no linked integration`,
+      );
+      return;
+    }
+
+    await this.sallaSyncService.triggerIncrementalSync(
+      integration.storeId.toString(),
+      sallaProductId,
+    );
+  }
+
+  private async handleProductDeleted(
+    data: Record<string, unknown> | undefined,
+    sallaMerchantId: string,
+  ): Promise<void> {
+    const sallaProductId = this.extractProductId(data, sallaMerchantId);
+    if (!sallaProductId) return;
+
+    const integration = await this.integrationRepository.findBySallaStoreId(sallaMerchantId);
+    if (!integration) {
+      this.logger.warn(
+        `product.deleted for merchant ${sallaMerchantId} with no linked integration`,
+      );
+      return;
+    }
+
+    await this.sallaSyncService.triggerProductDeleted(
+      integration.storeId.toString(),
+      sallaProductId,
+    );
+  }
+
+  private extractProductId(
+    data: Record<string, unknown> | undefined,
+    sallaMerchantId: string,
+  ): string | null {
+    const rawId = data?.id ?? (data?.data as Record<string, unknown> | undefined)?.id;
+
+    if (rawId === undefined || rawId === null) {
+      this.logger.warn(
+        `Could not extract product id from webhook payload for merchant ${sallaMerchantId}. ` +
+          `Verify the actual payload shape against a real webhook delivery.`,
+      );
+      return null;
+    }
+
+    return rawId.toString();
   }
 }

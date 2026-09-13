@@ -15,6 +15,11 @@ export interface ProductSyncIncrementalMessage {
   sallaProductId: string;
 }
 
+export interface ProductSyncDeletedMessage {
+  storeId: string;
+  sallaProductId: string;
+}
+
 @Injectable()
 export class SallaProductSyncPublisher {
   constructor(private readonly publisher: RabbitMqPublisherService) {}
@@ -33,6 +38,15 @@ export class SallaProductSyncPublisher {
       SALLA_EVENTS_EXCHANGE,
       ROUTING_KEY_PRODUCT_SYNC_INCREMENTAL,
       'product.sync.incremental',
+      { storeId, sallaProductId },
+    );
+  }
+
+  async publishProductDeleted(storeId: string, sallaProductId: string): Promise<void> {
+    await this.publisher.publish<ProductSyncDeletedMessage>(
+      SALLA_EVENTS_EXCHANGE,
+      ROUTING_KEY_PRODUCT_SYNC_DELETED,
+      'product.sync.deleted',
       { storeId, sallaProductId },
     );
   }
