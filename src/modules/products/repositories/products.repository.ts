@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { isValidObjectId, type Model, Types } from 'mongoose';
+import { ProductStatus } from '../enums/product-status.enum';
 import { ProductUpsertPayload } from '../interfaces/product-upsert-payload.interface';
 import { Product, ProductDocument } from '../schemas/product.schema';
 
@@ -70,5 +71,22 @@ export class ProductsRepository {
         lastSyncedAt: { $lt: cutoff },
       })
       .exec();
+  }
+
+  async markHiddenByExternalId(
+    storeId: string,
+    platform: string,
+    externalId: string,
+  ): Promise<boolean> {
+    if (!isValidObjectId(storeId)) return false;
+
+    const result = await this.productModel
+      .updateOne(
+        { storeId: new Types.ObjectId(storeId), platform, externalId },
+        { $set: { status: ProductStatus.Hidden, lastSyncedAt: new Date() } },
+      )
+      .exec();
+
+    return result.matchedCount > 0;
   }
 }
