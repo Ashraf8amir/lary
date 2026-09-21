@@ -46,6 +46,9 @@ export class Product {
   @Prop({ type: Number, required: true, default: 0 })
   stockQuantity!: number;
 
+  @Prop({ type: Boolean, required: true, default: false })
+  isUnlimitedStock!: boolean;
+
   @Prop({
     type: String,
     enum: Object.values(ProductStatus),

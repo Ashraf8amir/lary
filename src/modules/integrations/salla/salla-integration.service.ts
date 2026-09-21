@@ -66,6 +66,12 @@ export class SallaIntegrationService {
 
       case 'product.created':
       case 'product.updated':
+      case 'product.price.updated':
+      case 'product.status.updated':
+      case 'product.image.updated':
+      case 'product.category.updated':
+      case 'product.brand.updated':
+      case 'product.option.updated':
         await this.handleProductChanged(payload.data, merchantId);
         break;
 
@@ -111,6 +117,42 @@ export class SallaIntegrationService {
     }
 
     return this.sallaTokenService.getValidAccessToken(integration);
+  }
+
+  private verifyWebhookSignature(rawBody: Buffer, signature?: string): void {
+    if (!signature) {
+      this.logger.warn('Webhook received without x-salla-signature header');
+
+      throw new BusinessException('Missing webhook signature', {
+        errorCode: ErrorCode.UNAUTHORIZED,
+      });
+    }
+
+    if (!/^[a-f0-9]{64}$/i.test(signature)) {
+      this.logger.warn('Webhook signature format is invalid');
+
+      throw new BusinessException('Invalid webhook signature', {
+        errorCode: ErrorCode.UNAUTHORIZED,
+      });
+    }
+
+    const expectedSignature = createHmac('sha256', this.config.webhookSecret)
+      .update(rawBody)
+      .digest();
+
+    const receivedSignature = Buffer.from(signature, 'hex');
+
+    const isValid =
+      receivedSignature.length === expectedSignature.length &&
+      timingSafeEqual(receivedSignature, expectedSignature);
+
+    if (!isValid) {
+      this.logger.warn('Webhook signature mismatch detected');
+
+      throw new BusinessException('Invalid webhook signature', {
+        errorCode: ErrorCode.UNAUTHORIZED,
+      });
+    }
   }
 
   private async handleAppAuthorize(
@@ -250,42 +292,6 @@ export class SallaIntegrationService {
     };
   }
 
-  private verifyWebhookSignature(rawBody: Buffer, signature?: string): void {
-    if (!signature) {
-      this.logger.warn('Webhook received without x-salla-signature header');
-
-      throw new BusinessException('Missing webhook signature', {
-        errorCode: ErrorCode.UNAUTHORIZED,
-      });
-    }
-
-    if (!/^[a-f0-9]{64}$/i.test(signature)) {
-      this.logger.warn('Webhook signature format is invalid');
-
-      throw new BusinessException('Invalid webhook signature', {
-        errorCode: ErrorCode.UNAUTHORIZED,
-      });
-    }
-
-    const expectedSignature = createHmac('sha256', this.config.webhookSecret)
-      .update(rawBody)
-      .digest();
-
-    const receivedSignature = Buffer.from(signature, 'hex');
-
-    const isValid =
-      receivedSignature.length === expectedSignature.length &&
-      timingSafeEqual(receivedSignature, expectedSignature);
-
-    if (!isValid) {
-      this.logger.warn('Webhook signature mismatch detected');
-
-      throw new BusinessException('Invalid webhook signature', {
-        errorCode: ErrorCode.UNAUTHORIZED,
-      });
-    }
-  }
-
   private async handleProductChanged(
     data: Record<string, unknown> | undefined,
     sallaMerchantId: string,
@@ -329,15 +335,25 @@ export class SallaIntegrationService {
   }
 
   private extractProductId(
-    data: Record<string, unknown> | undefined,
+    payload: Record<string, any> | undefined,
     sallaMerchantId: string,
   ): string | null {
-    const rawId = data?.id ?? (data?.data as Record<string, unknown> | undefined)?.id;
+    if (!payload) return null;
+
+    const event = payload.event;
+    const data = payload.data ?? payload;
+
+    let rawId: unknown;
+
+    if (event?.startsWith('product.option.') || data.product_id) {
+      rawId = data.product_id ?? data.id;
+    } else {
+      rawId = data.id ?? data.product_id;
+    }
 
     if (rawId === undefined || rawId === null) {
       this.logger.warn(
-        `Could not extract product id from webhook payload for merchant ${sallaMerchantId}. ` +
-          `Verify the actual payload shape against a real webhook delivery.`,
+        `Could not extract product id from webhook payload for merchant ${sallaMerchantId}`,
       );
       return null;
     }

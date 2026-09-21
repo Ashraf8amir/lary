@@ -1,9 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { isValidObjectId, type Model, Types } from 'mongoose';
+import { ClientSession, isValidObjectId, type Model, Types } from 'mongoose';
 import { ProductVariantUpsertPayload } from '../interfaces/product-variant-upsert-payload.interface';
 import { ProductVariant, ProductVariantDocument } from '../schemas/product-variant.schema';
-
 @Injectable()
 export class ProductVariantsRepository {
   constructor(
@@ -14,6 +13,7 @@ export class ProductVariantsRepository {
   async upsert(
     productId: string,
     payload: ProductVariantUpsertPayload,
+    session?: ClientSession,
   ): Promise<ProductVariantDocument> {
     return this.variantModel
       .findOneAndUpdate(
@@ -29,12 +29,13 @@ export class ProductVariantsRepository {
             priceAmount: payload.priceAmount,
             currency: payload.currency,
             stockQuantity: payload.stockQuantity,
+            isUnlimitedStock: payload.isUnlimitedStock,
             status: payload.status,
             optionValues: payload.optionValues,
             lastSyncedAt: new Date(),
           },
         },
-        { upsert: true, returnDocument: 'after', runValidators: true },
+        { upsert: true, returnDocument: 'after', runValidators: true, session },
       )
       .exec();
   }

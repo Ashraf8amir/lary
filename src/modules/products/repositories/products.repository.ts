@@ -1,10 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { isValidObjectId, type Model, Types } from 'mongoose';
+import { ClientSession, isValidObjectId, type Model, Types } from 'mongoose';
 import { ProductStatus } from '../enums/product-status.enum';
 import { ProductUpsertPayload } from '../interfaces/product-upsert-payload.interface';
 import { Product, ProductDocument } from '../schemas/product.schema';
-
 @Injectable()
 export class ProductsRepository {
   constructor(
@@ -12,7 +11,7 @@ export class ProductsRepository {
     private readonly productModel: Model<ProductDocument>,
   ) {}
 
-  async upsert(payload: ProductUpsertPayload): Promise<ProductDocument> {
+  async upsert(payload: ProductUpsertPayload, session?: ClientSession): Promise<ProductDocument> {
     return this.productModel
       .findOneAndUpdate(
         {
@@ -31,11 +30,12 @@ export class ProductsRepository {
             priceAmount: payload.priceAmount,
             currency: payload.currency,
             stockQuantity: payload.stockQuantity,
+            isUnlimitedStock: payload.isUnlimitedStock,
             status: payload.status,
             lastSyncedAt: new Date(),
           },
         },
-        { upsert: true, returnDocument: 'after', runValidators: true },
+        { upsert: true, returnDocument: 'after', runValidators: true, session },
       )
       .exec();
   }
@@ -77,6 +77,7 @@ export class ProductsRepository {
     storeId: string,
     platform: string,
     externalId: string,
+    session?: ClientSession,
   ): Promise<boolean> {
     if (!isValidObjectId(storeId)) return false;
 
@@ -84,6 +85,7 @@ export class ProductsRepository {
       .updateOne(
         { storeId: new Types.ObjectId(storeId), platform, externalId },
         { $set: { status: ProductStatus.Hidden, lastSyncedAt: new Date() } },
+        { session },
       )
       .exec();
 

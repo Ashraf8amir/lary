@@ -412,6 +412,88 @@ Sent simulated `product.updated` and `product.deleted` webhook payloads and veri
 
 ---
 
+## Issue 05 — Implement Widget Settings Module
+
+### Issue (Feature Template)
+
+**Title:** `[Feature]: Implement Widget Settings module (merchant customization + public snippet config)`
+**Labels:** `type:feature`, `priority:high`, `area:widget-settings`, `area:products`
+
+**Description:**
+Implement a platform-agnostic Widget Settings module that lets a merchant customize the customer-facing chat widget's appearance (color, position, welcome message, bot name, avatar, enabled state) from the Embedded App dashboard, and exposes those settings publicly for the storefront App Snippet to read at runtime with no authentication. Saving settings for the first time also marks the store's onboarding as completed, closing the loop with the Embedded App's `complete_onboarding` → `dashboard` flow.
+
+**Acceptance Criteria:**
+
+- [ ] `WidgetSettings` schema created: one document per store (unique `storeId`), with `primaryColor`, `position` (`bottom-right` | `bottom-left`), `welcomeMessage`, `botName`, `avatarUrl`, `isEnabled`.
+- [ ] `avatarUrl` is a plain URL string only — no file upload/hosting is implemented in this backend for v1; the merchant dashboard frontend is responsible for hosting the image and submitting its URL.
+- [ ] `DEFAULT_WIDGET_SETTINGS` constant defined and used as the fallback when no document exists yet for a store.
+- [ ] `UpsertWidgetSettingsDto` validates each field independently (hex color pattern for `primaryColor`, enum for `position`, max length on `welcomeMessage`/`botName`, URL format for `avatarUrl`, boolean for `isEnabled`) — all fields optional to support partial updates.
+- [ ] `PUT /widget-settings/:storeId` — protected endpoint. Verifies the caller owns the store (`StoresService.assertOwnership`) before reading/writing. Upserts the settings and also calls `StoresService.markOnboardingCompleted(storeId)` on every successful save (idempotent — safe to call on every update, not just the first).
+- [ ] `GET /widget-settings/public/:storeId` — fully public endpoint, no auth, no store-ownership check. Returns `PublicWidgetSettings` (display-relevant fields only — no `storeId`/timestamps). Returns `DEFAULT_WIDGET_SETTINGS` when the store has no saved settings yet, rather than a 404 — the storefront snippet must always be able to render something sane.
+- [ ] No `@Throttle` override needed on the public endpoint beyond the app-wide throttlers — unlike the Salla Embedded session endpoint, this is a pure local MongoDB read with no upstream Salla API call to protect.
+- [ ] Module created under `modules/widget-settings/`, independent of `modules/integrations/salla/` — platform-agnostic, consistent with the Product/ProductVariant design.
+
+**Branch Name:**
+`feature/widget-settings-module`
+
+**Milestone:**
+`Sprint 04 — Merchant Dashboard & Embedded App`
+
+**Dependencies:**
+
+- Issue 08 — Implement Salla Embedded App Session Flow (`Store.onboardingCompletedAt`, `StoresService.markOnboardingCompleted`)
+- `StoresService.assertOwnership` (store ownership model)
+
+**Notes:**
+This is the module the Embedded App's `complete_onboarding` step writes to, and the module the storefront App Snippet reads from at runtime via `salla.config.get('store.id')` to identify which store's settings to fetch. No relation to Salla's API beyond that the store identifier ultimately originates from a Salla-connected store — the module itself has no Salla-specific code.
+
+**Plan Commit:**
+
+- Commit 1: `feat(widget-settings): add schema, DTO, and default settings`
+- Commit 2: `feat(widget-settings): add repository and service (default-merging logic)`
+- Commit 3: `feat(widget-settings): add controller (protected update + public read) and module wiring`
+
+---
+
+### Pull Request 09
+
+**Title:** `feat: implement widget settings module`
+
+**Summary:**
+Adds merchant-configurable widget appearance settings, readable publicly by the storefront chat widget snippet, and completes the Embedded App onboarding loop by marking onboarding done on first save.
+
+**Related Issue:**
+Closes #22
+
+**Changes:**
+
+- Add `src/modules/widget-settings/schemas/widget-settings.schema.ts`.
+- Add `src/modules/widget-settings/enums/widget-position.enum.ts`.
+- Add `src/modules/widget-settings/interfaces/default-widget-settings.constant.ts`.
+- Add `src/modules/widget-settings/interfaces/public-widget-settings.interface.ts`.
+- Add `src/modules/widget-settings/dtos/upsert-widget-settings.dto.ts`.
+- Add `src/modules/widget-settings/repositories/widget-settings.repository.ts`.
+- Add `src/modules/widget-settings/widget-settings.service.ts`.
+- Add `src/modules/widget-settings/widget-settings.controller.ts`.
+- Add `src/modules/widget-settings/widget-settings.module.ts`.
+
+**Acceptance Criteria:**
+
+- [ ] All requirements from the related Issue are satisfied.
+- [ ] No unrelated changes are included.
+- [ ] Relevant tests/checks have been completed.
+
+**Validation:**
+Verified: a store with no saved settings returns `DEFAULT_WIDGET_SETTINGS` from the public endpoint (not a 404); a non-owner calling `PUT /widget-settings/:storeId` is rejected via `assertOwnership`; a successful first save flips `onboardingCompletedAt` on the `Store` document; a second save does not error or duplicate the document (upsert by unique `storeId`); invalid payloads (bad hex color, oversized message, malformed URL) are rejected with field-level validation errors.
+
+**Checklist:**
+
+- [ ] Code follows project conventions.
+- [ ] No secrets or sensitive information are committed.
+- [ ] Tests were added/updated where applicable.
+- [ ] Documentation was updated if needed.
+- [ ] The PR is focused on the related Issue.
+
 # Release
 
 ## `v0.4.0` — Product Synchronization

@@ -1,52 +1,49 @@
-import { SALLA_EVENTS_EXCHANGE } from '@/infrastructure/rabbitmq/constants/exchanges.constant';
-import {
-  ROUTING_KEY_PRODUCT_SYNC_FULL,
-  ROUTING_KEY_PRODUCT_SYNC_INCREMENTAL,
-} from '@/infrastructure/rabbitmq/constants/queues.constant';
-import { RabbitMqPublisherService } from '@/infrastructure/rabbitmq/rabbitmq-publisher.service';
+import { RabbitMqEventPublisherService } from '@/infrastructure/rabbitmq/publisher/rabbitmq-event-publisher.service';
+import { SALLA_PRODUCT_EXCHANGE } from '@/infrastructure/rabbitmq/rabbitmq.constant';
 import { Injectable } from '@nestjs/common';
-
-export interface ProductSyncFullMessage {
+import { EVENTS } from '@shared/messaging/event.types';
+import { ROUTING_KEYS } from '@shared/messaging/routing-keys';
+export interface ProductSyncFullPayload {
   storeId: string;
 }
 
-export interface ProductSyncIncrementalMessage {
+export interface ProductSyncIncrementalPayload {
   storeId: string;
   sallaProductId: string;
 }
 
-export interface ProductSyncDeletedMessage {
+export interface ProductSyncDeletedPayload {
   storeId: string;
   sallaProductId: string;
 }
 
 @Injectable()
 export class SallaProductSyncPublisher {
-  constructor(private readonly publisher: RabbitMqPublisherService) {}
+  constructor(private readonly publisher: RabbitMqEventPublisherService) {}
 
   async publishFullSync(storeId: string): Promise<void> {
-    await this.publisher.publish<ProductSyncFullMessage>(
-      SALLA_EVENTS_EXCHANGE,
-      ROUTING_KEY_PRODUCT_SYNC_FULL,
-      'product.sync.full',
+    await this.publisher.publish<ProductSyncFullPayload>(
+      SALLA_PRODUCT_EXCHANGE,
+      ROUTING_KEYS.ROUTING_KEY_PRODUCT_SYNC_FULL,
+      EVENTS.PRODUCT_SYNC_FULL,
       { storeId },
     );
   }
 
   async publishIncrementalSync(storeId: string, sallaProductId: string): Promise<void> {
-    await this.publisher.publish<ProductSyncIncrementalMessage>(
-      SALLA_EVENTS_EXCHANGE,
-      ROUTING_KEY_PRODUCT_SYNC_INCREMENTAL,
-      'product.sync.incremental',
+    await this.publisher.publish<ProductSyncIncrementalPayload>(
+      SALLA_PRODUCT_EXCHANGE,
+      ROUTING_KEYS.ROUTING_KEY_PRODUCT_SYNC_INCREMENTAL,
+      EVENTS.PRODUCT_SYNC_INCREMENTAL,
       { storeId, sallaProductId },
     );
   }
 
   async publishProductDeleted(storeId: string, sallaProductId: string): Promise<void> {
-    await this.publisher.publish<ProductSyncDeletedMessage>(
-      SALLA_EVENTS_EXCHANGE,
-      ROUTING_KEY_PRODUCT_SYNC_DELETED,
-      'product.sync.deleted',
+    await this.publisher.publish<ProductSyncDeletedPayload>(
+      SALLA_PRODUCT_EXCHANGE,
+      ROUTING_KEYS.ROUTING_KEY_PRODUCT_SYNC_DELETED,
+      EVENTS.PRODUCT_SYNC_DELETED,
       { storeId, sallaProductId },
     );
   }

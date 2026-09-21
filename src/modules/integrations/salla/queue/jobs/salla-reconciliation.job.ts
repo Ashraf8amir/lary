@@ -25,7 +25,11 @@ export class SallaReconciliationJob {
     this.logger.log(`Queuing full sync for ${connectedIntegrations.length} connected store(s)`);
 
     for (const integration of connectedIntegrations) {
-      await this.sallaSyncService.triggerFullSync(integration.storeId.toString());
+      try {
+        await this.sallaSyncService.triggerFullSync(integration.storeId.toString());
+      } catch (err) {
+        this.logger.error(`Failed to trigger full sync for store ${integration.storeId}`, err);
+      }
     }
   }
 }

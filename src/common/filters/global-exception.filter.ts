@@ -25,6 +25,11 @@ export class AllExceptionsFilter implements ExceptionFilter {
   ) {}
 
   catch(exception: unknown, host: ArgumentsHost): void {
+    if (host.getType() !== 'http') {
+      this.logNonHttpException(exception, host);
+      throw exception;
+    }
+
     const { httpAdapter } = this.httpAdapterHost;
 
     const context = host.switchToHttp();
@@ -175,5 +180,13 @@ export class AllExceptionsFilter implements ExceptionFilter {
     }
 
     this.logger.warn(`${context} - Warn: ${errorResponse.message}`);
+  }
+
+  private logNonHttpException(exception: unknown, host: ArgumentsHost): void {
+    const contextType = host.getType();
+    const stack = this.getStack(exception);
+    const message = exception instanceof Error ? exception.message : String(exception);
+
+    this.logger.error(`Unhandled exception in [${contextType}] context - Error: ${message}`, stack);
   }
 }

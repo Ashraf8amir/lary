@@ -13,5 +13,6 @@ export interface ProductUpsertPayload {
   priceAmount: number;
   currency: string;
   stockQuantity: number;
+  isUnlimitedStock: boolean;
   status: ProductStatus;
 }

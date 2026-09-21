@@ -1,5 +1,6 @@
 import { BusinessException, ErrorCode } from '@common';
 import { Injectable, Logger } from '@nestjs/common';
+import { ClientSession } from 'mongoose';
 import { ProductStatus } from './enums/product-status.enum';
 import { ProductUpsertPayload } from './interfaces/product-upsert-payload.interface';
 import { ProductVariantUpsertPayload } from './interfaces/product-variant-upsert-payload.interface';
@@ -17,11 +18,17 @@ export class ProductsService {
     private readonly productVariantsRepository: ProductVariantsRepository,
   ) {}
 
-  async upsertFromIntegration(payload: ProductUpsertPayload): Promise<ProductDocument> {
-    return this.productsRepository.upsert(payload);
+  async upsertFromIntegration(
+    payload: ProductUpsertPayload,
+    session?: ClientSession,
+  ): Promise<ProductDocument> {
+    return this.productsRepository.upsert(payload, session);
   }
 
-  async upsertVariant(payload: ProductVariantUpsertPayload): Promise<ProductVariantDocument> {
+  async upsertVariant(
+    payload: ProductVariantUpsertPayload,
+    session?: ClientSession,
+  ): Promise<ProductVariantDocument> {
     const product = await this.productsRepository.findByExternalId(
       payload.storeId,
       payload.platform,
@@ -38,7 +45,7 @@ export class ProductsService {
       });
     }
 
-    return this.productVariantsRepository.upsert(product._id.toString(), payload);
+    return this.productVariantsRepository.upsert(product._id.toString(), payload, session);
   }
 
   async findByStoreId(storeId: string): Promise<ProductDocument[]> {
@@ -75,6 +82,7 @@ export class ProductsService {
           priceAmount: product.priceAmount,
           currency: product.currency,
           stockQuantity: product.stockQuantity,
+          isUnlimitedStock: product.isUnlimitedStock,
           status: ProductStatus.Hidden,
         });
       }
@@ -93,11 +101,13 @@ export class ProductsService {
     storeId: string,
     platform: string,
     externalId: string,
+    session?: ClientSession,
   ): Promise<void> {
     const wasFound = await this.productsRepository.markHiddenByExternalId(
       storeId,
       platform,
       externalId,
+      session,
     );
 
     if (!wasFound) {

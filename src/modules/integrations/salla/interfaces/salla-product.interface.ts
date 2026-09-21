@@ -19,13 +19,32 @@ export interface SallaProductVariant {
   id: number;
   price: SallaMoney;
   stock_quantity: number;
+  unlimited_quantity?: boolean;
   sku?: string;
   barcode?: string;
   related_option_values: number[];
 }
 
 export interface SallaProductCategory {
+  id: number;
   name: string;
+}
+
+export interface SallaProductImage {
+  id: number;
+  url: string;
+  main: boolean;
+  alt?: string;
+  video_url?: string | null;
+  type: string;
+  sort?: number;
+}
+
+export interface SallaMainImage {
+  id: number;
+  url: string;
+  video_url?: string | null;
+  type: string;
 }
 
 export interface SallaProductListItem {
@@ -33,10 +52,12 @@ export interface SallaProductListItem {
   name: string;
   description?: string;
   price: SallaMoney;
-  quantity: string;
+  quantity: number;
+  unlimited_quantity?: boolean;
   status: 'sale' | 'out' | 'hidden';
   is_available: boolean;
-  thumbnail?: string;
+  main_image?: SallaMainImage | null;
+  images?: SallaProductImage[];
   urls?: { customer?: string; admin?: string };
   categories?: SallaProductCategory[];
   options?: SallaProductOption[];
