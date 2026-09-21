@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { isValidObjectId, type Model } from 'mongoose';
+import { isValidObjectId, Types, type Model } from 'mongoose';
 import { CreateStoreDto } from '../dtos/create-store.dto';
 import { UpdateStoreDto } from '../dtos/update-store.dto';
 import { Store, StoreDocument } from '../schemas/store.schema';
@@ -26,12 +26,6 @@ export class StoresRepository {
     return this.storeModel.findOne({ _id: id, ownerId }).exec();
   }
 
-  async existsWithOwner(id: string, ownerId: string): Promise<boolean> {
-    if (!isValidObjectId(id) || !isValidObjectId(ownerId)) return false;
-    const count = await this.storeModel.countDocuments({ _id: id, ownerId }).exec();
-    return count > 0;
-  }
-
   async update(id: string, data: UpdateStoreDto): Promise<StoreDocument | null> {
     if (!isValidObjectId(id)) return null;
     return this.storeModel
@@ -45,13 +39,31 @@ export class StoresRepository {
     return result.deletedCount > 0;
   }
 
+  async existsWithOwner(id: string, userId: string): Promise<boolean> {
+    if (!isValidObjectId(id) || !isValidObjectId(userId)) {
+      return false;
+    }
+
+    const result = await this.storeModel.exists({
+      _id: id,
+      ownerId: new Types.ObjectId(userId),
+    });
+
+    return Boolean(result);
+  }
+
   async markOnboardingCompleted(id: string): Promise<StoreDocument | null> {
     if (!isValidObjectId(id)) return null;
 
     return this.storeModel
-      .findByIdAndUpdate(
-        id,
-        { $set: { onboardingCompletedAt: new Date() } },
+      .findOneAndUpdate(
+        {
+          _id: id,
+          onboardingCompletedAt: null,
+        },
+        {
+          $currentDate: { onboardingCompletedAt: true },
+        },
         { returnDocument: 'after' },
       )
       .exec();
