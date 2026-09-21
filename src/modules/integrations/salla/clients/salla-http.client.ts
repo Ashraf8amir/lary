@@ -57,12 +57,6 @@ export class SallaHttpClient extends BaseHttpClient {
     const status = error.response?.status;
     const data = error.response?.data as SallaErrorBody | undefined;
 
-    /*
-     * Network error / timeout
-     *
-     * No response means the request didn't successfully reach
-     * Salla or we didn't receive a response from them.
-     */
     if (!status) {
       this.logger.error(`Salla API request failed: ${this.getAxiosErrorMessage(error)}`);
 
@@ -72,9 +66,6 @@ export class SallaHttpClient extends BaseHttpClient {
       });
     }
 
-    /*
-     * Rate limit
-     */
     if (status === HttpStatus.TOO_MANY_REQUESTS) {
       this.logger.warn(
         `Salla API rate limited: ${error.config?.method?.toUpperCase()} ${error.config?.url}`,
@@ -145,9 +136,14 @@ export class SallaHttpClient extends BaseHttpClient {
       });
     }
 
-    /*
-     * Other Salla API errors
-     */
+    if (status === HttpStatus.NOT_FOUND) {
+      this.logger.warn(`Salla resource not found: ${error.config?.url}`);
+      throw new SallaApiException(data?.message ?? 'Resource not found on Salla', {
+        statusCode: HttpStatus.NOT_FOUND,
+        errorCode: ErrorCode.SALLA_RESOURCE_NOT_FOUND,
+      });
+    }
+
     throw new SallaApiException(this.getSallaErrorMessage(data, status), {
       statusCode: status,
       errorCode: ErrorCode.SALLA_API_ERROR,

@@ -14,7 +14,11 @@ const REQUEST_TIMEOUT_MS = 30_000;
 export class TimeoutInterceptor implements NestInterceptor {
   private readonly timeoutMs = REQUEST_TIMEOUT_MS;
 
-  intercept(_context: ExecutionContext, next: CallHandler): Observable<unknown> {
+  intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
+    if (context.getType() !== 'http') {
+      return next.handle();
+    }
+
     return next.handle().pipe(
       timeout(this.timeoutMs),
       catchError((err) => {

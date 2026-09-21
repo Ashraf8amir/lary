@@ -6,7 +6,7 @@ import { Nack, RabbitSubscribe } from '@golevelup/nestjs-rabbitmq';
 import { Injectable, Logger } from '@nestjs/common';
 import { NonRetryableMessagingError } from '@shared/messaging/errors/non-retryable-messaging.error';
 import { RetryableMessagingError } from '@shared/messaging/errors/retryable-messaging.error';
-import { RabbitMqMessage } from '@shared/messaging/message.contract';
+import type { RabbitMqMessage } from '@shared/messaging/message.contract';
 import { ClientSession } from 'mongoose';
 import { SallaApiClient } from '../../clients/salla-api.client';
 import { SallaApiException } from '../../exceptions/salla.exception';
@@ -43,6 +43,7 @@ export class SallaProductSyncConsumer {
     exchange: SALLA_PRODUCT_EXCHANGE,
     routingKey: ROUTING_KEYS_MAP.full,
     queue: 'salla.product.sync.full.queue',
+    createQueueIfNotExists: false,
   })
   async handleFullSyncMessage(
     message: RabbitMqMessage<ProductSyncFullPayload>,
@@ -56,6 +57,7 @@ export class SallaProductSyncConsumer {
     exchange: SALLA_PRODUCT_EXCHANGE,
     routingKey: ROUTING_KEYS_MAP.incremental,
     queue: 'salla.product.sync.incremental.queue',
+    createQueueIfNotExists: false,
   })
   async handleIncrementalSyncMessage(
     message: RabbitMqMessage<ProductSyncIncrementalPayload>,
@@ -69,6 +71,7 @@ export class SallaProductSyncConsumer {
     exchange: SALLA_PRODUCT_EXCHANGE,
     routingKey: ROUTING_KEYS_MAP.deleted,
     queue: 'salla.product.sync.deleted.queue',
+    createQueueIfNotExists: false,
   })
   async handleProductDeletedMessage(
     message: RabbitMqMessage<ProductSyncDeletedPayload>,
@@ -91,12 +94,21 @@ export class SallaProductSyncConsumer {
 
     let page = 1;
     let totalPages = 1;
+    let failedCount = 0;
 
     do {
       const response = await this.fetchListPageOrThrow(accessToken, page);
 
       for (const item of response.data) {
-        await this.syncProductItem(item, storeId);
+        try {
+          await this.syncProductItem(item, storeId);
+        } catch (error) {
+          failedCount += 1;
+          const message = error instanceof Error ? error.message : String(error);
+          this.logger.warn(
+            `Skipping product ${item.id} (store ${storeId}) during full sync: ${message}`,
+          );
+        }
       }
 
       totalPages = response.pagination.totalPages;
@@ -155,14 +167,30 @@ export class SallaProductSyncConsumer {
       const optionValueLookup = SallaProductMapper.buildOptionValueLookup(item.options);
 
       for (const variant of item.skus) {
-        const variantPayload = SallaProductMapper.toVariantUpsertPayload(
-          variant,
-          item.id.toString(),
-          storeId,
-          optionValueLookup,
-        );
-        await this.productsService.upsertVariant(variantPayload, session);
+        try {
+          const variantPayload = SallaProductMapper.toVariantUpsertPayload(
+            variant,
+            item.id.toString(),
+            storeId,
+            optionValueLookup,
+            !!item.unlimited_quantity,
+          );
+          await this.productsService.upsertVariant(variantPayload, session);
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error);
+          this.logger.warn(
+            `Skipping variant ${variant.id} of product ${item.id} (store ${storeId}): ${message}`,
+          );
+        }
       }
+    }
+  }
+
+  private async fetchListPageOrThrow(accessToken: string, page: number) {
+    try {
+      return await this.apiClient.listProducts(accessToken, page);
+    } catch (error) {
+      throw this.classifySallaError(error);
     }
   }
 
@@ -176,17 +204,12 @@ export class SallaProductSyncConsumer {
     }
   }
 
-  private async fetchListPageOrThrow(accessToken: string, page: number) {
-    try {
-      return await this.apiClient.listProducts(accessToken, page);
-    } catch (error) {
-      throw this.classifySallaError(error);
-    }
-  }
-
   private classifySallaError(error: unknown): NonRetryableMessagingError | RetryableMessagingError {
     if (error instanceof SallaApiException) {
-      if (error.errorCode === ErrorCode.SALLA_AUTHORIZATION_FAILED) {
+      if (
+        error.errorCode === ErrorCode.SALLA_AUTHORIZATION_FAILED ||
+        error.errorCode === ErrorCode.SALLA_RESOURCE_NOT_FOUND
+      ) {
         return new NonRetryableMessagingError(error.message);
       }
       return new RetryableMessagingError(error.message);

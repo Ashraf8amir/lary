@@ -30,6 +30,7 @@ type AppConfig = ConfigType<typeof appConfig>;
       { name: MessageIdempotency.name, schema: MessageIdempotencySchema },
     ]),
     RabbitMQModule.forRootAsync({
+      imports: [ConfigModule.forFeature(rabbitmqConfig), ConfigModule.forFeature(appConfig)],
       inject: [rabbitmqConfig.KEY, appConfig.KEY],
 
       useFactory: (rabbitmqCfg: RabbitMqEnvConfig, appCfg: AppConfig): RabbitMQConfig => {

@@ -7,7 +7,7 @@ import {
   ValidationPipe,
 } from '@nestjs/common';
 import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
-import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+import { ThrottlerModule } from '@nestjs/throttler';
 import { ClsModule } from 'nestjs-cls';
 import { v4 as uuid } from 'uuid';
 
@@ -26,6 +26,7 @@ import { ScheduleModule } from '@nestjs/schedule';
 import Redis from 'ioredis';
 import { AppService } from './app.service';
 import { BusinessException, ErrorCode } from './common';
+import { AppThrottlerGuard } from './common/guards/app-throttler.guard';
 import { CacheModule } from './infrastructure/cache/cache.module';
 import { EncryptionModule } from './infrastructure/encryption/encryption.module';
 import { REDIS_CLIENT } from './infrastructure/redis/redis.constants';
@@ -74,7 +75,7 @@ import { UsersModule } from './modules/users/users.module';
   providers: [
     AppService,
 
-    { provide: APP_GUARD, useClass: ThrottlerGuard },
+    { provide: APP_GUARD, useClass: AppThrottlerGuard },
     { provide: APP_GUARD, useClass: JwtAccessGuard },
 
     { provide: APP_INTERCEPTOR, useClass: TimeoutInterceptor },

@@ -1,10 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { isValidObjectId, type Model, Types } from 'mongoose';
+import { ClientSession, isValidObjectId, type Model, Types } from 'mongoose';
 import { ProductStatus } from '../enums/product-status.enum';
 import { ProductUpsertPayload } from '../interfaces/product-upsert-payload.interface';
 import { Product, ProductDocument } from '../schemas/product.schema';
-
 @Injectable()
 export class ProductsRepository {
   constructor(
@@ -31,6 +30,7 @@ export class ProductsRepository {
             priceAmount: payload.priceAmount,
             currency: payload.currency,
             stockQuantity: payload.stockQuantity,
+            isUnlimitedStock: payload.isUnlimitedStock,
             status: payload.status,
             lastSyncedAt: new Date(),
           },

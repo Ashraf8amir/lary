@@ -11,6 +11,10 @@ export class JwtAccessGuard extends AuthGuard('jwt-access') {
   }
 
   canActivate(context: ExecutionContext) {
+    if (context.getType() !== 'http') {
+      return true;
+    }
+
     const isPublic = this.reflector.getAllAndOverride<boolean>(PUBLIC_KEY, [
       context.getHandler(),
       context.getClass(),

@@ -1,5 +1,6 @@
 import { BusinessException, ErrorCode } from '@common';
 import { Injectable, Logger } from '@nestjs/common';
+import { ClientSession } from 'mongoose';
 import { ProductStatus } from './enums/product-status.enum';
 import { ProductUpsertPayload } from './interfaces/product-upsert-payload.interface';
 import { ProductVariantUpsertPayload } from './interfaces/product-variant-upsert-payload.interface';
@@ -81,6 +82,7 @@ export class ProductsService {
           priceAmount: product.priceAmount,
           currency: product.currency,
           stockQuantity: product.stockQuantity,
+          isUnlimitedStock: product.isUnlimitedStock,
           status: ProductStatus.Hidden,
         });
       }

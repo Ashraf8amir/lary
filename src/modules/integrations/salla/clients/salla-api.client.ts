@@ -54,7 +54,7 @@ export class SallaApiClient {
   async listProducts(accessToken: string, page: number): Promise<SallaProductListResponse> {
     this.logger.debug(`Fetching Salla products page ${page}`);
     return this.httpClient.getAuthenticated<SallaProductListResponse>(
-      `${this.baseUrl}/products`,
+      `${this.config.baseUrl}/products`,
       accessToken,
       { params: { page } },
     );
@@ -65,6 +65,9 @@ export class SallaApiClient {
     productId: string,
   ): Promise<{ status: number; success: boolean; data: SallaProductListItem }> {
     this.logger.debug(`Fetching Salla product ${productId}`);
-    return this.httpClient.getAuthenticated(`${this.baseUrl}/products/${productId}`, accessToken);
+    return this.httpClient.getAuthenticated(
+      `${this.config.baseUrl}/products/${productId}`,
+      accessToken,
+    );
   }
 }

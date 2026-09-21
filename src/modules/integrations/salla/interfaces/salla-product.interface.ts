@@ -19,6 +19,7 @@ export interface SallaProductVariant {
   id: number;
   price: SallaMoney;
   stock_quantity: number;
+  unlimited_quantity?: boolean;
   sku?: string;
   barcode?: string;
   related_option_values: number[];
@@ -52,6 +53,7 @@ export interface SallaProductListItem {
   description?: string;
   price: SallaMoney;
   quantity: number;
+  unlimited_quantity?: boolean;
   status: 'sale' | 'out' | 'hidden';
   is_available: boolean;
   main_image?: SallaMainImage | null;
