@@ -2,11 +2,13 @@ import { Transform } from 'class-transformer';
 import {
   IsBoolean,
   IsEnum,
+  IsNotEmpty,
   IsOptional,
   IsString,
   IsUrl,
   Matches,
   MaxLength,
+  ValidateIf,
 } from 'class-validator';
 import { WidgetPosition } from '../enums/widget-position.enum';
 
@@ -23,20 +25,23 @@ export class UpsertWidgetSettingsDto {
   position?: WidgetPosition;
 
   @IsOptional()
-  @IsString()
-  @MaxLength(300, { message: 'welcomeMessage must not exceed 300 characters' })
   @Transform(({ value }: { value?: string }) => (typeof value === 'string' ? value.trim() : value))
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(300, { message: 'welcomeMessage must not exceed 300 characters' })
   welcomeMessage?: string;
 
   @IsOptional()
-  @IsString()
-  @MaxLength(50)
   @Transform(({ value }: { value?: string }) => (typeof value === 'string' ? value.trim() : value))
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(50)
   botName?: string;
 
   @IsOptional()
+  @ValidateIf((_, value) => value !== null)
   @IsUrl({}, { message: 'avatarUrl must be a valid URL' })
-  avatarUrl?: string;
+  avatarUrl?: string | null;
 
   @IsOptional()
   @IsBoolean()

@@ -11,7 +11,7 @@ export type WidgetSettingsDocument = HydratedDocument<WidgetSettings>;
   versionKey: false,
 })
 export class WidgetSettings {
-  @Prop({ type: Types.ObjectId, required: true, ref: 'Store', unique: true, index: true })
+  @Prop({ type: Types.ObjectId, required: true, ref: 'Store', unique: true })
   storeId!: Types.ObjectId;
 
   @Prop({ type: String, default: DEFAULT_WIDGET_SETTINGS.primaryColor })
