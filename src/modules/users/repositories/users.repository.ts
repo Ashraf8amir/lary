@@ -79,11 +79,7 @@ export class UsersRepository {
             mobile: data.mobile?.trim(),
           },
         },
-        {
-          returnDocument: 'after',
-          upsert: true,
-          runValidators: true,
-        },
+        { returnDocument: 'after', upsert: true, runValidators: true },
       )
       .exec();
   }

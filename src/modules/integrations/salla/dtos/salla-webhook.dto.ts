@@ -20,14 +20,6 @@ export class SallaAppAuthorizeDataDto {
   @IsString()
   @IsOptional()
   token_type?: string;
-
-  @IsNumber()
-  @IsOptional()
-  id?: number;
-
-  @IsString()
-  @IsOptional()
-  app_name?: string;
 }
 
 export class SallaWebhookPayloadDto {

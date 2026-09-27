@@ -35,6 +35,7 @@ import { AuthModule } from './modules/auth/auth.module';
 import { JwtAccessGuard } from './modules/auth/guards/jwt-auth.guard';
 import { SallaModule } from './modules/integrations/salla/salla.module';
 import { UsersModule } from './modules/users/users.module';
+import { WidgetSettingsModule } from './modules/widget-settings/widget-settings.module';
 
 @Module({
   imports: [
@@ -71,6 +72,7 @@ import { UsersModule } from './modules/users/users.module';
     UsersModule,
     AuthModule,
     SallaModule,
+    WidgetSettingsModule,
   ],
   providers: [
     AppService,
