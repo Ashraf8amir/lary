@@ -32,6 +32,19 @@ export class WidgetSettingsService {
       botName: settings.botName ?? DEFAULT_WIDGET_SETTINGS.botName,
       avatarUrl: settings.avatarUrl ?? null,
       isEnabled: settings.isEnabled ?? DEFAULT_WIDGET_SETTINGS.isEnabled,
+      supportContactInfo: settings.supportContactInfo ?? null,
+    };
+  }
+
+  async getForSystemPrompt(
+    storeId: string,
+  ): Promise<{ botName: string; supportContactInfo: string | null }> {
+    const settings = await this.widgetSettingsRepository.findByStoreId(storeId);
+
+    return {
+      botName: settings?.botName ?? DEFAULT_WIDGET_SETTINGS.botName,
+      supportContactInfo:
+        settings?.supportContactInfo ?? DEFAULT_WIDGET_SETTINGS.supportContactInfo,
     };
   }
 }

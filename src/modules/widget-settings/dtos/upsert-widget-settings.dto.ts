@@ -46,4 +46,10 @@ export class UpsertWidgetSettingsDto {
   @IsOptional()
   @IsBoolean()
   isEnabled?: boolean;
+
+  @IsOptional()
+  @ValidateIf((_, value) => value !== null)
+  @IsString()
+  @IsNotEmpty()
+  supportContactInfo?: string | null;
 }

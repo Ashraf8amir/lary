@@ -35,6 +35,9 @@ export class WidgetSettings {
 
   @Prop({ type: Boolean, default: DEFAULT_WIDGET_SETTINGS.isEnabled })
   isEnabled!: boolean;
+
+  @Prop({ type: String, required: false, default: null })
+  supportContactInfo?: string | null;
 }
 
 export const WidgetSettingsSchema = SchemaFactory.createForClass(WidgetSettings);

@@ -8,4 +8,5 @@ export const DEFAULT_WIDGET_SETTINGS: PublicWidgetSettings = {
   botName: 'مساعد المتجر',
   avatarUrl: null,
   isEnabled: true,
+  supportContactInfo: null,
 };

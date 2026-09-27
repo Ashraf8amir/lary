@@ -7,4 +7,5 @@ export interface PublicWidgetSettings {
   botName: string;
   avatarUrl: string | null;
   isEnabled: boolean;
+  supportContactInfo: string | null;
 }
