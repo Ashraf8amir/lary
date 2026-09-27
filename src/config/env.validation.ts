@@ -1,5 +1,6 @@
 import * as Joi from 'joi';
 import { appValidationSchema } from './app.config';
+import { chatValidationSchema } from './chat.config';
 import { databaseValidationSchema } from './database.config';
 import { jwtValidationSchema } from './jwt.config';
 import { rabbitmqValidationSchema } from './rabbitmq.config';
@@ -13,4 +14,5 @@ export const envValidationSchema = Joi.object({
   ...redisValidationSchema,
   ...sallaValidationSchema,
   ...rabbitmqValidationSchema,
+  ...chatValidationSchema,
 });
