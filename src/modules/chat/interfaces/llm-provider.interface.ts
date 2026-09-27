@@ -17,13 +17,13 @@ export interface LlmTool {
   parameters: LlmToolParameterSchema;
 }
 
-export type LlmMessageRole = 'user' | 'assistant' | 'tool';
-
 export interface LlmToolCallRequest {
-  id?: string;
+  id: string;
   toolName: string;
   arguments: Record<string, unknown>;
 }
+
+export type LlmMessageRole = 'user' | 'assistant' | 'tool';
 
 export interface LlmMessage {
   role: LlmMessageRole;
