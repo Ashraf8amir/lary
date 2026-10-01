@@ -3,6 +3,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { ClientSession, isValidObjectId, type Model, Types } from 'mongoose';
 import { ProductStatus } from '../enums/product-status.enum';
 import { ProductUpsertPayload } from '../interfaces/product-upsert-payload.interface';
+import type { searchFilters } from '../products.service';
 import { Product, ProductDocument } from '../schemas/product.schema';
 @Injectable()
 export class ProductsRepository {
@@ -90,5 +91,22 @@ export class ProductsRepository {
       .exec();
 
     return result.matchedCount > 0;
+  }
+
+  async searchForChat(storeId: string, filters: searchFilters): Promise<ProductDocument[]> {
+    if (!isValidObjectId(storeId)) return [];
+
+    const safeQuery = filters.query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const conditions: Record<string, unknown> = {
+      storeId: new Types.ObjectId(storeId),
+      status: { $ne: ProductStatus.Hidden },
+      name: new RegExp(safeQuery, 'i'),
+    };
+
+    if (filters.maxPrice !== undefined) {
+      conditions.priceAmount = { $lte: filters.maxPrice };
+    }
+
+    return this.productModel.find(conditions).limit(5).exec();
   }
 }

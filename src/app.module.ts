@@ -33,6 +33,7 @@ import { REDIS_CLIENT } from './infrastructure/redis/redis.constants';
 import { RedisModule } from './infrastructure/redis/redis.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { JwtAccessGuard } from './modules/auth/guards/jwt-auth.guard';
+import { ChatModule } from './modules/chat/chat.module';
 import { SallaModule } from './modules/integrations/salla/salla.module';
 import { UsersModule } from './modules/users/users.module';
 import { WidgetSettingsModule } from './modules/widget-settings/widget-settings.module';
@@ -73,6 +74,7 @@ import { WidgetSettingsModule } from './modules/widget-settings/widget-settings.
     AuthModule,
     SallaModule,
     WidgetSettingsModule,
+    ChatModule,
   ],
   providers: [
     AppService,
