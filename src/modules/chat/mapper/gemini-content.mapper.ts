@@ -16,13 +16,13 @@ export class GeminiContentMapper {
       return [];
     }
 
-    const chatMessages = messages.filter((msg) => msg.role !== 'system');
+    const nonSystemMessages = messages.filter((msg) => msg.role !== 'system');
 
-    const lastToolIndex = this.findLastToolIndex(chatMessages);
+    const sanitizedMessages = this.filterHistoricalTools(nonSystemMessages);
 
-    return chatMessages.map((message, index) => {
+    return sanitizedMessages.map((message) => {
       if (message.role === 'tool') {
-        return this.formatToolMessage(message, index === lastToolIndex);
+        return this.formatActiveToolResponse(message);
       }
 
       if (message.role === 'assistant' && message.toolCalls && message.toolCalls.length > 0) {
@@ -88,30 +88,89 @@ export class GeminiContentMapper {
 
   // ---- internal helpers (message formatting) ----
 
-  private findLastToolIndex(messages: LlmMessage[]): number {
-    if (!Array.isArray(messages)) return -1;
+  // private findLastToolIndex(messages: LlmMessage[]): number {
+  //   if (!Array.isArray(messages)) return -1;
 
-    for (let i = messages.length - 1; i >= 0; i--) {
-      if (messages[i].role === 'tool') {
-        return i;
-      }
-    }
-    return -1;
-  }
+  //   for (let i = messages.length - 1; i >= 0; i--) {
+  //     if (messages[i].role === 'tool') {
+  //       return i;
+  //     }
+  //   }
+  //   return -1;
+  // }
 
-  private formatToolMessage(message: LlmMessage, isLastTool: boolean) {
-    let content = message.content ?? '';
+  // private formatToolMessage(message: LlmMessage, isLastTool: boolean) {
+  //   let content = message.content ?? '';
 
-    if (!isLastTool && content) {
-      content = this.pruneOldToolContent(content);
-    }
+  //   if (!isLastTool && content) {
+  //     content = this.pruneOldToolContent(content);
+  //   }
 
+  //   let parsedResponse: Record<string, any>;
+  //   try {
+  //     const parsed = typeof content === 'string' ? JSON.parse(content) : content;
+  //     parsedResponse = typeof parsed === 'object' && parsed !== null ? parsed : { result: parsed };
+  //   } catch {
+  //     parsedResponse = { result: content };
+  //   }
+
+  //   return {
+  //     role: 'user' as const,
+  //     parts: [
+  //       {
+  //         functionResponse: {
+  //           name: message.toolName ?? '',
+  //           response: parsedResponse,
+  //           ...(message.toolCallId ? { id: message.toolCallId } : {}),
+  //         },
+  //       },
+  //     ],
+  //   };
+  // }
+
+  // private pruneOldToolContent(rawContent: string): string {
+  //   if (!rawContent || typeof rawContent !== 'string') {
+  //     return rawContent;
+  //   }
+
+  //   try {
+  //     const parsed = JSON.parse(rawContent);
+
+  //     if (parsed && typeof parsed === 'object' && Array.isArray(parsed.products)) {
+  //       const totalCount = parsed.totalFound || parsed.products.length;
+
+  //       const previewLimit = 5;
+  //       const displayed = parsed.products.slice(0, previewLimit).map((p: any) => {
+  //         if (!p || typeof p !== 'object') return String(p);
+  //         const name = p.name ?? 'Unknown';
+  //         const price = p.price ? ` (${p.price})` : '';
+  //         return `${name}${price}`;
+  //       });
+
+  //       return JSON.stringify({
+  //         status: 'success',
+  //         totalFound: totalCount,
+  //         displayedProducts: displayed,
+  //         ...(totalCount > previewLimit
+  //           ? { note: `Showing top ${previewLimit} of ${totalCount} items` }
+  //           : {}),
+  //       });
+  //     }
+  //   } catch {
+  //     // If parsing fails, return the raw content as-is
+  //   }
+
+  //   return rawContent;
+  // }
+
+  private formatActiveToolResponse(message: LlmMessage) {
     let parsedResponse: Record<string, any>;
     try {
-      const parsed = typeof content === 'string' ? JSON.parse(content) : content;
+      const parsed =
+        typeof message.content === 'string' ? JSON.parse(message.content) : message.content;
       parsedResponse = typeof parsed === 'object' && parsed !== null ? parsed : { result: parsed };
     } catch {
-      parsedResponse = { result: content };
+      parsedResponse = { result: message.content ?? '' };
     }
 
     return {
@@ -121,46 +180,28 @@ export class GeminiContentMapper {
           functionResponse: {
             name: message.toolName ?? '',
             response: parsedResponse,
-            ...(message.toolCallId ? { id: message.toolCallId } : {}),
           },
         },
       ],
     };
   }
 
-  private pruneOldToolContent(rawContent: string): string {
-    if (!rawContent || typeof rawContent !== 'string') {
-      return rawContent;
-    }
+  private filterHistoricalTools(messages: LlmMessage[]): LlmMessage[] {
+    const lastUserIndex = messages.findLastIndex((m) => m.role === 'user');
 
-    try {
-      const parsed = JSON.parse(rawContent);
-
-      if (parsed && typeof parsed === 'object' && Array.isArray(parsed.products)) {
-        const totalCount = parsed.totalFound || parsed.products.length;
-
-        const previewLimit = 5;
-        const displayed = parsed.products.slice(0, previewLimit).map((p: any) => {
-          if (!p || typeof p !== 'object') return String(p);
-          const name = p.name ?? 'Unknown';
-          const price = p.price ? ` (${p.price})` : '';
-          return `${name}${price}`;
-        });
-
-        return JSON.stringify({
-          status: 'success',
-          totalFound: totalCount,
-          displayedProducts: displayed,
-          ...(totalCount > previewLimit
-            ? { note: `Showing top ${previewLimit} of ${totalCount} items` }
-            : {}),
-        });
+    return messages.filter((msg, idx) => {
+      if (idx < lastUserIndex) {
+        if (msg.role === 'tool') return false;
+        if (
+          msg.role === 'assistant' &&
+          msg.toolCalls?.length &&
+          (!msg.content || msg.content.startsWith('['))
+        ) {
+          return false;
+        }
       }
-    } catch {
-      // If parsing fails, return the raw content as-is
-    }
-
-    return rawContent;
+      return true;
+    });
   }
 
   private formatAssistantToolCallMessage(message: LlmMessage) {

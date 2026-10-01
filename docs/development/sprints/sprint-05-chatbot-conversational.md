@@ -200,7 +200,7 @@ The MVP chat module (Issue 01) intentionally deferred several concerns to keep t
 `improvement/chat-hardening`
 
 **Milestone:**
-`Sprint 06 — Chat Hardening & Analytics` _(tentative — to be scheduled after MVP validation)_
+`Chatbot Core`
 
 **Dependencies:**
 

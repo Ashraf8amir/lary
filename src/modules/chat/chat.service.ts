@@ -1,13 +1,14 @@
 import { ProductCard } from '@modules/products/interfaces/product-card.interface';
 import { WidgetSettingsService } from '@modules/widget-settings/widget-settings.service';
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import { LLM_PROVIDER, MAX_TOOL_ROUNDS } from './chat.constants';
+import { LLM_PROVIDER, MAX_TOOL_ROUNDS, SUMMARY_MESSAGE_INTERVAL } from './chat.constants';
 import { ChatResponse } from './interfaces/chat-response.interface';
 import type { LlmMessage, LlmProvider } from './interfaces/llm-provider.interface';
 import { SystemPromptBuilder } from './prompts/system-prompt.builder';
-import { ConversationSessionService } from './session/conversation-session.service';
+import { ChatSummaryPublisher } from './queues/publishers/chat-summary.publisher';
+import { ConversationSessionService } from './services/conversation-session.service';
+import { ToolExecutorService } from './services/tool-executor.service';
 import { ALL_TOOLS } from './tools/tool-definitions';
-import { ToolExecutorService } from './tools/tool-executor.service';
 
 @Injectable()
 export class ChatService {
@@ -20,6 +21,7 @@ export class ChatService {
     private readonly widgetSettingsService: WidgetSettingsService,
     private readonly systemPromptBuilder: SystemPromptBuilder,
     private readonly toolExecutor: ToolExecutorService,
+    private readonly chatSummaryPublisher: ChatSummaryPublisher,
   ) {}
 
   async handleMessage(
@@ -27,12 +29,16 @@ export class ChatService {
     storeId: string,
     userMessage: string,
   ): Promise<ChatResponse> {
-    const [recentHistory, promptSettings] = await Promise.all([
+    const [recentHistory, conversationSummary, promptSettings] = await Promise.all([
       this.sessionService.getHistory(conversationId),
+      this.sessionService.getSummary(conversationId),
       this.widgetSettingsService.getForSystemPrompt(storeId),
     ]);
 
-    const systemPrompt = this.systemPromptBuilder.build(promptSettings);
+    const systemPrompt = this.systemPromptBuilder.build({
+      ...promptSettings,
+      conversationSummary,
+    });
 
     const safeHistory = this.getSafeRecentHistory(recentHistory, 10);
 
@@ -95,10 +101,28 @@ export class ChatService {
 
     await this.sessionService.appendMessages(conversationId, newMessagesToSave);
 
+    this.checkAndTriggerSummary(conversationId).catch((err) => {
+      this.logger.error(`Failed to trigger summary for conv: ${conversationId}`, err);
+    });
+
     return {
       replyText: finalText!,
       cards: this.deduplicateCards(allCards),
     };
+  }
+
+  private async checkAndTriggerSummary(conversationId: string): Promise<void> {
+    const [allMessages, lastSummarizedCount] = await Promise.all([
+      this.sessionService.getHistory(conversationId),
+      this.sessionService.getLastSummarizedCount(conversationId),
+    ]);
+
+    const totalCount = allMessages.length;
+    const diff = totalCount - lastSummarizedCount;
+
+    if (diff >= SUMMARY_MESSAGE_INTERVAL) {
+      await this.chatSummaryPublisher.publishSummarize(conversationId, totalCount);
+    }
   }
 
   private getSafeRecentHistory(

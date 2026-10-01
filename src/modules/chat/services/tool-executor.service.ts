@@ -1,7 +1,7 @@
 import { ProductCard } from '@modules/products/interfaces/product-card.interface';
 import { ProductsService } from '@modules/products/products.service';
 import { Injectable, Logger } from '@nestjs/common';
-import { ToolCallContext } from './tool-call-context.interface';
+import { ToolCallContext } from '../tools/tool-call-context.interface';
 
 export interface ToolExecutionResult {
   forModel: string;
@@ -82,6 +82,7 @@ export class ToolExecutorService {
     return {
       totalFound: cards.length,
       products: cards.map((card) => ({
+        variantId: card.variantId,
         name: card.name,
         options: card.optionsLabel || 'N/A',
         price: `${card.priceAmount} ${card.currency}`,

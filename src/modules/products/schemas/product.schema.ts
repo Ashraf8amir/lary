@@ -64,5 +64,3 @@ export class Product {
 export const ProductSchema = SchemaFactory.createForClass(Product);
 
 ProductSchema.index({ storeId: 1, platform: 1, externalId: 1 }, { unique: true });
-
-ProductSchema.index({ storeId: 1, status: 1, name: 'text' });

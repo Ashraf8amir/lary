@@ -96,17 +96,51 @@ export class ProductsRepository {
   async searchForChat(storeId: string, filters: searchFilters): Promise<ProductDocument[]> {
     if (!isValidObjectId(storeId)) return [];
 
-    const safeQuery = filters.query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const conditions: Record<string, unknown> = {
-      storeId: new Types.ObjectId(storeId),
-      status: { $ne: ProductStatus.Hidden },
-      name: new RegExp(safeQuery, 'i'),
-    };
+    const trimmedQuery = filters.query?.trim();
+    if (!trimmedQuery) return [];
 
-    if (filters.maxPrice !== undefined) {
-      conditions.priceAmount = { $lte: filters.maxPrice };
-    }
+    const safeQuery = trimmedQuery.replace(/[.*+?^${}()|[\]\\]/g, ' ').trim();
+    if (!safeQuery) return [];
 
-    return this.productModel.find(conditions).limit(5).exec();
+    const pipeline: any[] = [
+      {
+        $search: {
+          index: 'product_text_search_index',
+          compound: {
+            filter: [{ equals: { path: 'storeId', value: new Types.ObjectId(storeId) } }],
+            should: [
+              {
+                text: {
+                  query: safeQuery,
+                  path: 'name',
+                  score: { boost: { value: 5 } },
+                  fuzzy: { maxEdits: 1, prefixLength: 1 },
+                },
+              },
+              {
+                text: {
+                  query: safeQuery,
+                  path: 'description',
+                  score: { boost: { value: 1 } },
+                  fuzzy: { maxEdits: 1 },
+                },
+              },
+            ],
+            minimumShouldMatch: 1,
+          },
+        },
+      },
+      {
+        $match: {
+          status: { $ne: ProductStatus.Hidden },
+          ...(filters.maxPrice !== undefined ? { priceAmount: { $lte: filters.maxPrice } } : {}),
+        },
+      },
+      { $addFields: { searchScore: { $meta: 'searchScore' } } },
+      { $sort: { searchScore: -1 } },
+      { $limit: 5 },
+    ];
+
+    return this.productModel.aggregate(pipeline).exec();
   }
 }
