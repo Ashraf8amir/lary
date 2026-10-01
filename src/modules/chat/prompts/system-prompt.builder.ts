@@ -1,9 +1,13 @@
-import { WidgetSettingsDocument } from '@modules/widget-settings/schemas/widget-settings.schema';
 import { Injectable } from '@nestjs/common';
+
+export interface PromptRelevantSettings {
+  botName: string;
+  supportContactInfo: string | null;
+}
 
 @Injectable()
 export class SystemPromptBuilder {
-  build(settings: WidgetSettingsDocument): string {
+  build(settings: PromptRelevantSettings): string {
     const botName = settings.botName.trim();
 
     const sections = [

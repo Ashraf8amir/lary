@@ -1,18 +1,26 @@
-import chatConfig from '@/config/chat.config';
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
+import { ProductsModule } from '../products/products.module';
+import { WidgetSettingsModule } from '../widget-settings/widget-settings.module';
+import { LLM_PROVIDER } from './chat.constants';
+import { ChatController } from './chat.controller';
+import { ChatService } from './chat.service';
+import { GeminiContentMapper } from './mapper/gemini-content.mapper';
+import { SystemPromptBuilder } from './prompts/system-prompt.builder';
 import { GeminiProvider } from './providers/gemini.provider';
-
-export const LLM_PROVIDER = 'LLM_PROVIDER';
+import { ConversationSessionService } from './session/conversation-session.service';
+import { ToolExecutorService } from './tools/tool-executor.service';
 
 @Module({
-  imports: [ConfigModule.forFeature(chatConfig)],
+  imports: [WidgetSettingsModule, ProductsModule],
+  controllers: [ChatController],
   providers: [
     GeminiProvider,
-    {
-      provide: LLM_PROVIDER,
-      useExisting: GeminiProvider,
-    },
+    GeminiContentMapper,
+    { provide: LLM_PROVIDER, useExisting: GeminiProvider },
+    ChatService,
+    ConversationSessionService,
+    SystemPromptBuilder,
+    ToolExecutorService,
   ],
   exports: [LLM_PROVIDER],
 })

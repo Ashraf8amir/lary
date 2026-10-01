@@ -1,13 +1,16 @@
 export interface LlmToolProperty {
   type: 'string' | 'number' | 'boolean' | 'array' | 'object';
-  description: string;
+  description?: string;
   enum?: string[];
   items?: LlmToolProperty;
+  properties?: Record<string, LlmToolProperty>;
+  required?: string[];
 }
 
 export interface LlmToolParameterSchema {
   type: 'object';
   properties: Record<string, LlmToolProperty>;
+  description?: string;
   required?: string[];
 }
 
@@ -23,7 +26,7 @@ export interface LlmToolCallRequest {
   arguments: Record<string, unknown>;
 }
 
-export type LlmMessageRole = 'user' | 'assistant' | 'tool';
+export type LlmMessageRole = 'user' | 'assistant' | 'tool' | 'system';
 
 export interface LlmMessage {
   role: LlmMessageRole;

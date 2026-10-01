@@ -16,7 +16,7 @@ export class ConversationSessionService {
 
   async getHistory(conversationId: string): Promise<LlmMessage[]> {
     const history = await this.cacheService.get<LlmMessage[]>(this.buildKey(conversationId));
-    return history ?? [];
+    return history || [];
   }
 
   async appendMessages(conversationId: string, newMessages: LlmMessage[]): Promise<void> {
