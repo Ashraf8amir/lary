@@ -14,63 +14,77 @@ export class ConversationStore {
     private readonly config: ConfigType<typeof chatConfig>,
   ) {}
 
-  async getHistory(conversationId: string): Promise<LlmMessage[]> {
-    const history = await this.cacheService.get<LlmMessage[]>(this.buildSessionKey(conversationId));
+  async getHistory(storeId: string, conversationId: string): Promise<LlmMessage[]> {
+    const history = await this.cacheService.get<LlmMessage[]>(
+      this.buildSessionKey(storeId, conversationId),
+    );
 
-    return history ?? [];
+    return Array.isArray(history) ? history.filter(Boolean) : [];
   }
 
-  async appendMessages(conversationId: string, newMessages: LlmMessage[]): Promise<void> {
+  async appendMessages(
+    storeId: string,
+    conversationId: string,
+    newMessages: LlmMessage[],
+  ): Promise<void> {
     if (newMessages.length === 0) {
       return;
     }
 
-    const existingMessages = await this.getHistory(conversationId);
+    const existingMessages = await this.getHistory(storeId, conversationId);
 
     await this.cacheService.set(
-      this.buildSessionKey(conversationId),
+      this.buildSessionKey(storeId, conversationId),
       [...existingMessages, ...newMessages],
       this.config.sessionTtlSeconds,
     );
   }
 
-  async getSummary(conversationId: string): Promise<string | null> {
-    const summary = await this.cacheService.get<string>(this.buildSummaryKey(conversationId));
+  async getSummary(storeId: string, conversationId: string): Promise<string | null> {
+    const summary = await this.cacheService.get<string>(
+      this.buildSummaryKey(storeId, conversationId),
+    );
 
     return summary ?? null;
   }
 
-  async setSummary(conversationId: string, summary: string): Promise<void> {
+  async setSummary(storeId: string, conversationId: string, summary: string): Promise<void> {
     await this.cacheService.set(
-      this.buildSummaryKey(conversationId),
+      this.buildSummaryKey(storeId, conversationId),
       summary,
       this.config.sessionTtlSeconds,
     );
   }
 
-  async getLastSummarizedCount(conversationId: string): Promise<number> {
-    const count = await this.cacheService.get<number>(this.buildSummaryCountKey(conversationId));
+  async getLastSummarizedCount(storeId: string, conversationId: string): Promise<number> {
+    const count = await this.cacheService.get<number>(
+      this.buildSummaryCountKey(storeId, conversationId),
+    );
 
     return count ?? 0;
   }
 
-  async setLastSummarizedCount(conversationId: string, count: number): Promise<void> {
+  async setLastSummarizedCount(
+    storeId: string,
+    conversationId: string,
+    count: number,
+  ): Promise<void> {
     await this.cacheService.set(
-      this.buildSummaryCountKey(conversationId),
+      this.buildSummaryCountKey(storeId, conversationId),
       count,
       this.config.sessionTtlSeconds,
     );
   }
 
-  private buildSessionKey(conversationId: string): string {
-    return `${CHAT_CACHE_KEYS.SESSION}${conversationId}`;
+  private buildSessionKey(storeId: string, conversationId: string): string {
+    return `${CHAT_CACHE_KEYS.SESSION}${storeId}:${conversationId}`;
   }
 
-  private buildSummaryKey(conversationId: string): string {
-    return `${CHAT_CACHE_KEYS.SUMMARY}${conversationId}`;
+  private buildSummaryKey(storeId: string, conversationId: string): string {
+    return `${CHAT_CACHE_KEYS.SUMMARY}${storeId}:${conversationId}`;
   }
 
-  private buildSummaryCountKey(conversationId: string): string {
-    return `${CHAT_CACHE_KEYS.SUMMARY_COUNT}${conversationId}`;
+  private buildSummaryCountKey(storeId: string, conversationId: string): string {
+    return `${CHAT_CACHE_KEYS.SUMMARY_COUNT}${storeId}:${conversationId}`;
   }
 }

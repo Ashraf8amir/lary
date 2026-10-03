@@ -1,13 +1,15 @@
-import { FunctionDeclaration, GenerateContentResponse, Schema, Type } from '@google/genai';
+import { FunctionDeclaration, GenerateContentResponse, Part, Schema, Type } from '@google/genai';
 import { Injectable } from '@nestjs/common';
-import {
+import type {
   LlmMessage,
   LlmResponse,
-  LlmTool,
   LlmToolCallRequest,
+} from '../interfaces/llm-provider.interface';
+import type {
+  LlmTool,
   LlmToolParameterSchema,
   LlmToolProperty,
-} from '../interfaces/llm-provider.interface';
+} from '../interfaces/tool.interface';
 
 @Injectable()
 export class GeminiContentMapper {
@@ -59,116 +61,39 @@ export class GeminiContentMapper {
       if (part.functionCall) {
         const call = part.functionCall;
         toolCalls.push({
-          id: (call as any).id || `call_${call.name || 'tool'}_${Date.now()}_${index}`,
+          id: call.id || `call_${call.name || 'tool'}_${Date.now()}_${index}`,
           toolName: call.name?.trim() || 'unknown_tool',
           arguments: (call.args as Record<string, unknown>) ?? {},
-          // حفظ الـ thoughtSignature القادم من Gemini مع الـ part
-          thoughtSignature: (part as any).thoughtSignature,
-        } as any);
+          thoughtSignature: part.thoughtSignature,
+        });
       }
     }
 
-    let text: string | null = null;
-    const textParts = parts.filter((p: any) => typeof p.text === 'string').map((p: any) => p.text);
-    if (textParts.length > 0) {
-      text = textParts.join('').trim();
-    }
+    const textParts = parts
+      .filter(
+        (part): part is Part & { text: string } => typeof part.text === 'string' && !part.thought,
+      )
+      .map((part) => part.text);
 
-    // لو في toolCalls، نحفظ الـ parts الأصلية كـ JSON عشان نضمن عدم ضياع التوقيع
-    let rawPartsContent = text;
-    if (toolCalls.length > 0 && parts.length > 0) {
-      rawPartsContent = JSON.stringify(parts);
-    }
+    const text = textParts.length > 0 ? textParts.join('').trim() : null;
 
     return {
-      text: rawPartsContent,
+      text,
       toolCalls,
     };
   }
 
   // ---- internal helpers (message formatting) ----
 
-  // private findLastToolIndex(messages: LlmMessage[]): number {
-  //   if (!Array.isArray(messages)) return -1;
-
-  //   for (let i = messages.length - 1; i >= 0; i--) {
-  //     if (messages[i].role === 'tool') {
-  //       return i;
-  //     }
-  //   }
-  //   return -1;
-  // }
-
-  // private formatToolMessage(message: LlmMessage, isLastTool: boolean) {
-  //   let content = message.content ?? '';
-
-  //   if (!isLastTool && content) {
-  //     content = this.pruneOldToolContent(content);
-  //   }
-
-  //   let parsedResponse: Record<string, any>;
-  //   try {
-  //     const parsed = typeof content === 'string' ? JSON.parse(content) : content;
-  //     parsedResponse = typeof parsed === 'object' && parsed !== null ? parsed : { result: parsed };
-  //   } catch {
-  //     parsedResponse = { result: content };
-  //   }
-
-  //   return {
-  //     role: 'user' as const,
-  //     parts: [
-  //       {
-  //         functionResponse: {
-  //           name: message.toolName ?? '',
-  //           response: parsedResponse,
-  //           ...(message.toolCallId ? { id: message.toolCallId } : {}),
-  //         },
-  //       },
-  //     ],
-  //   };
-  // }
-
-  // private pruneOldToolContent(rawContent: string): string {
-  //   if (!rawContent || typeof rawContent !== 'string') {
-  //     return rawContent;
-  //   }
-
-  //   try {
-  //     const parsed = JSON.parse(rawContent);
-
-  //     if (parsed && typeof parsed === 'object' && Array.isArray(parsed.products)) {
-  //       const totalCount = parsed.totalFound || parsed.products.length;
-
-  //       const previewLimit = 5;
-  //       const displayed = parsed.products.slice(0, previewLimit).map((p: any) => {
-  //         if (!p || typeof p !== 'object') return String(p);
-  //         const name = p.name ?? 'Unknown';
-  //         const price = p.price ? ` (${p.price})` : '';
-  //         return `${name}${price}`;
-  //       });
-
-  //       return JSON.stringify({
-  //         status: 'success',
-  //         totalFound: totalCount,
-  //         displayedProducts: displayed,
-  //         ...(totalCount > previewLimit
-  //           ? { note: `Showing top ${previewLimit} of ${totalCount} items` }
-  //           : {}),
-  //       });
-  //     }
-  //   } catch {
-  //     // If parsing fails, return the raw content as-is
-  //   }
-
-  //   return rawContent;
-  // }
-
   private formatActiveToolResponse(message: LlmMessage) {
-    let parsedResponse: Record<string, any>;
+    let parsedResponse: Record<string, unknown>;
     try {
       const parsed =
         typeof message.content === 'string' ? JSON.parse(message.content) : message.content;
-      parsedResponse = typeof parsed === 'object' && parsed !== null ? parsed : { result: parsed };
+      parsedResponse =
+        typeof parsed === 'object' && parsed !== null
+          ? (parsed as Record<string, unknown>)
+          : { result: parsed };
     } catch {
       parsedResponse = { result: message.content ?? '' };
     }
@@ -192,11 +117,7 @@ export class GeminiContentMapper {
     return messages.filter((msg, idx) => {
       if (idx < lastUserIndex) {
         if (msg.role === 'tool') return false;
-        if (
-          msg.role === 'assistant' &&
-          msg.toolCalls?.length &&
-          (!msg.content || msg.content.startsWith('['))
-        ) {
+        if (msg.role === 'assistant' && msg.toolCalls?.length && !msg.content?.trim()) {
           return false;
         }
       }
@@ -205,23 +126,15 @@ export class GeminiContentMapper {
   }
 
   private formatAssistantToolCallMessage(message: LlmMessage) {
-    const parts: any[] = [];
+    const parts: Part[] = [];
 
-    // إذا كان هناك نص عادي مع طلب الأداة
-    if (
-      message.content &&
-      typeof message.content === 'string' &&
-      !message.content.startsWith('[')
-    ) {
-      if (message.content.trim()) {
-        parts.push({ text: message.content });
-      }
+    if (message.content?.trim()) {
+      parts.push({ text: message.content.trim() });
     }
 
-    // إعادة بناء الـ parts من toolCalls بدون أي تكرار
     if (message.toolCalls && message.toolCalls.length > 0) {
       for (const call of message.toolCalls) {
-        let argsObj = {};
+        let argsObj: Record<string, unknown> = {};
 
         if (typeof call.arguments === 'string') {
           try {
@@ -233,16 +146,15 @@ export class GeminiContentMapper {
           argsObj = call.arguments;
         }
 
-        const partItem: any = {
+        const partItem: Part = {
           functionCall: {
             name: call.toolName,
             args: argsObj,
           },
         };
 
-        // تمرير الـ thoughtSignature من مكان واحد فقط (toolCalls)
-        if ((call as any).thoughtSignature) {
-          partItem.thoughtSignature = (call as any).thoughtSignature;
+        if (call.thoughtSignature) {
+          partItem.thoughtSignature = call.thoughtSignature;
         }
 
         parts.push(partItem);

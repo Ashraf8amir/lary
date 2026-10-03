@@ -6,9 +6,9 @@ import { NonRetryableMessagingError } from '@shared/messaging/errors/non-retryab
 import { RetryableMessagingError } from '@shared/messaging/errors/retryable-messaging.error';
 import type { RabbitMqMessage } from '@shared/messaging/message.contract';
 import { ROUTING_KEYS } from '@shared/messaging/routing-keys';
-import { ConversationSessionService } from '../../services/conversation-store';
-import { ConversationSummaryService } from '../../services/conversation-summarizer';
-import { ChatSummarizePayload } from '../publishers/chat-summary.publisher';
+import type { ChatSummarizePayload } from '../../interfaces/chat.interface';
+import { ConversationStore } from '../../services/conversation-store';
+import { ConversationSummarizer } from '../../services/conversation-summarizer';
 
 @Injectable()
 export class ChatSummaryConsumer {
@@ -16,8 +16,8 @@ export class ChatSummaryConsumer {
 
   constructor(
     private readonly messageHandler: RabbitMqMessageHandler,
-    private readonly summaryService: ConversationSummaryService,
-    private readonly sessionService: ConversationSessionService,
+    private readonly conversationSummarizer: ConversationSummarizer,
+    private readonly conversationStore: ConversationStore,
   ) {}
 
   @RabbitSubscribe({
@@ -35,35 +35,61 @@ export class ChatSummaryConsumer {
   }
 
   private async processSummarize({
+    storeId,
     conversationId,
     totalMessagesCount,
   }: ChatSummarizePayload): Promise<void> {
-    this.logger.log(`Processing summary for conversation: ${conversationId}`);
+    this.logger.log(`Processing summary for store: ${storeId}, conversation: ${conversationId}`);
 
-    const [allMessages, existingSummary] = await Promise.all([
-      this.sessionService.getHistory(conversationId),
-      this.sessionService.getSummary(conversationId),
+    const [allMessages, existingSummary, lastSummarizedCount] = await Promise.all([
+      this.conversationStore.getHistory(storeId, conversationId),
+      this.conversationStore.getSummary(storeId, conversationId),
+      this.conversationStore.getLastSummarizedCount(storeId, conversationId),
     ]);
 
     if (!allMessages || allMessages.length === 0) {
-      throw new NonRetryableMessagingError(`No history found for conversation: ${conversationId}`);
+      throw new NonRetryableMessagingError(
+        `No history found for store: ${storeId}, conversation: ${conversationId}`,
+      );
+    }
+
+    if (totalMessagesCount <= lastSummarizedCount) {
+      this.logger.debug(
+        `Skipping summary for ${conversationId}: already summarized up to ${lastSummarizedCount}`,
+      );
+      return;
+    }
+
+    const unsummarizedMessages = allMessages.slice(lastSummarizedCount, totalMessagesCount);
+
+    if (unsummarizedMessages.length === 0) {
+      return;
     }
 
     let newSummary: string | null = null;
     try {
-      newSummary = await this.summaryService.summarize(allMessages, existingSummary);
+      newSummary = await this.conversationSummarizer.summarize(
+        unsummarizedMessages,
+        existingSummary,
+      );
     } catch (error) {
       throw new RetryableMessagingError(
         error instanceof Error ? error.message : 'Gemini summarization failed',
       );
     }
 
+    const updates: Promise<void>[] = [
+      this.conversationStore.setLastSummarizedCount(storeId, conversationId, totalMessagesCount),
+    ];
+
     if (newSummary) {
-      await Promise.all([
-        this.sessionService.setSummary(conversationId, newSummary),
-        this.sessionService.setLastSummarizedCount(conversationId, totalMessagesCount),
-      ]);
-      this.logger.log(`Summary updated successfully in Redis for conversation: ${conversationId}`);
+      updates.push(this.conversationStore.setSummary(storeId, conversationId, newSummary));
     }
+
+    await Promise.all(updates);
+
+    this.logger.log(
+      `Summary state updated in Redis for store: ${storeId}, conversation: ${conversationId} (up to message ${totalMessagesCount})`,
+    );
   }
 }

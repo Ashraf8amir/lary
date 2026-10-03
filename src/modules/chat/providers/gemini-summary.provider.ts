@@ -3,7 +3,7 @@ import { Inject, Injectable, Logger } from '@nestjs/common';
 import type { ConfigType } from '@nestjs/config';
 
 import chatConfig from '@config/chat.config';
-import type { SummaryProvider } from '../interfaces/summary-provider.interface';
+import type { SummaryProvider } from '../interfaces/llm-provider.interface';
 
 @Injectable()
 export class GeminiSummaryProvider implements SummaryProvider {
@@ -21,6 +21,7 @@ export class GeminiSummaryProvider implements SummaryProvider {
   }
 
   async generateSummary(prompt: string, systemPrompt: string): Promise<string | null> {
+    this.logger.debug(prompt);
     try {
       const response = await this.client.models.generateContent({
         model: this.modelName,

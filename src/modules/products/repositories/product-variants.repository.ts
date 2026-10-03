@@ -44,4 +44,18 @@ export class ProductVariantsRepository {
     if (!isValidObjectId(productId)) return [];
     return this.variantModel.find({ productId: new Types.ObjectId(productId) }).exec();
   }
+
+  async findByStoreAndExternalId(
+    storeId: string,
+    externalId: string,
+  ): Promise<ProductVariantDocument | null> {
+    if (!isValidObjectId(storeId) || !externalId?.trim()) return null;
+
+    return this.variantModel
+      .findOne({
+        storeId: new Types.ObjectId(storeId),
+        externalId: externalId.trim(),
+      })
+      .exec();
+  }
 }

@@ -1,10 +1,5 @@
 import { Injectable } from '@nestjs/common';
-
-export interface PromptRelevantSettings {
-  botName: string;
-  supportContactInfo: string | null;
-  conversationSummary?: string | null;
-}
+import type { PromptRelevantSettings } from '../interfaces/chat.interface';
 
 @Injectable()
 export class SystemPromptBuilder {
@@ -87,8 +82,16 @@ export class SystemPromptBuilder {
 
   private buildToolUsageSection(): string {
     return `## استخدام الأدوات
-استخدم أداة البحث عن المنتجات (search_products) فقط عند وجود نية واضحة للتسوق أو البحث أو طلب توصية.
-لا تستخدمها من أجل: التحية، الشكر، الأسئلة العامة، أو أي محادثة بدون نية شراء أو بحث فعلية.`;
+لديك أداتان أساسيتان، اختر الأداة المناسبة حسب سياق رسالة العميل:
+
+1. أداة البحث العام (\`search_products\`):
+- استخدمها عندما يبحث العميل عن منتج جديد، أو فئة منتجات، أو يطلب توصية جديدة لم تُعرض بعد.
+- لا تستخدمها للتحية، الشكر، أو الأسئلة العامة غير الشرائية.
+
+2. أداة فحص الخيارات والتوفر (\`get_product_variants\`):
+- استخدمها عندما يسأل العميل عن منتج محدد تم عرضه أو ذكره بالفعل في المحادثة (مثل: "فيه منه مقاس L؟"، "وش الألوان المتوفرة منه؟"، "هل متوفر منه أحمر؟").
+- مرر للأداة \`variantId\` الخاص بالمنتج (من تاج \`[DISPLAY_CARDS]\` السابق إن وجد) مع اسم المنتج \`productName\`.
+- إذا وجدت الخيار (اللون/المقاس) الذي سأل عنه العميل متوفراً في نتائج الأداة، اعرضه للعميل وضع الـ \`variantId\` الجديد الخاص بهذا الخيار داخل تاج \`[DISPLAY_CARDS]\` في نهاية ردك. وإذا كان غير متوفر، أخبره بذلك واعرض عليه المقاسات أو الألوان الأخرى المتوفرة من نفس المنتج.`;
   }
 
   private buildGroundingSection(): string {

@@ -1,8 +1,8 @@
 import { WidgetSettingsService } from '@modules/widget-settings/widget-settings.service';
 import { Injectable, Logger } from '@nestjs/common';
 
-import { SUMMARY_MESSAGE_INTERVAL } from './chat.constants';
-import { ChatResponse } from './interfaces/chat-response.interface';
+import { SLIDING_WINDOW_LIMIT, SUMMARY_MESSAGE_INTERVAL } from './chat.constants';
+import { ChatResponse } from './interfaces/chat.interface';
 import { SystemPromptBuilder } from './prompts/system-prompt.builder';
 import { ChatSummaryPublisher } from './queues/publishers/chat-summary.publisher';
 import { ChatGenerationService } from './services/chat-generation.service';
@@ -30,12 +30,15 @@ export class ChatService {
     userMessage: string,
   ): Promise<ChatResponse> {
     const [recentHistory, conversationSummary, promptSettings] = await Promise.all([
-      this.conversationStore.getHistory(conversationId),
-      this.conversationStore.getSummary(conversationId),
+      this.conversationStore.getHistory(storeId, conversationId),
+      this.conversationStore.getSummary(storeId, conversationId),
       this.widgetSettingsService.getForSystemPrompt(storeId),
     ]);
 
-    const safeHistory = this.conversationContext.getRecentHistory(recentHistory, 10);
+    const safeHistory = this.conversationContext.getRecentHistory(
+      recentHistory,
+      SLIDING_WINDOW_LIMIT,
+    );
 
     const systemPrompt = this.systemPromptBuilder.build({
       ...promptSettings,
@@ -57,12 +60,18 @@ export class ChatService {
 
     generationResult.messagesToSave.push({
       role: 'assistant',
-      content: response.cleanReplyText,
+      content: generationResult.finalText,
     });
 
-    await this.conversationStore.appendMessages(conversationId, generationResult.messagesToSave);
+    await this.conversationStore.appendMessages(
+      storeId,
+      conversationId,
+      generationResult.messagesToSave,
+    );
 
-    this.triggerSummary(conversationId);
+    const totalMessageCount = recentHistory.length + generationResult.messagesToSave.length;
+
+    this.triggerSummary(storeId, conversationId, totalMessageCount);
 
     return {
       replyText: response.cleanReplyText,
@@ -70,25 +79,31 @@ export class ChatService {
     };
   }
 
-  private triggerSummary(conversationId: string): void {
-    this.checkAndTriggerSummary(conversationId).catch((error) => {
-      this.logger.error(`Failed to trigger summary for conversation ${conversationId}`, error);
+  private triggerSummary(storeId: string, conversationId: string, totalMessageCount: number): void {
+    this.checkAndTriggerSummary(storeId, conversationId, totalMessageCount).catch((error) => {
+      this.logger.error(
+        `Failed to trigger summary for store ${storeId}, conversation ${conversationId}`,
+        error,
+      );
     });
   }
 
-  private async checkAndTriggerSummary(conversationId: string): Promise<void> {
-    const [allMessages, lastSummarizedCount] = await Promise.all([
-      this.conversationStore.getHistory(conversationId),
-      this.conversationStore.getLastSummarizedCount(conversationId),
-    ]);
+  private async checkAndTriggerSummary(
+    storeId: string,
+    conversationId: string,
+    totalMessageCount: number,
+  ): Promise<void> {
+    const lastSummarizedCount = await this.conversationStore.getLastSummarizedCount(
+      storeId,
+      conversationId,
+    );
 
-    const totalMessageCount = allMessages.length;
     const unsummarizedMessageCount = totalMessageCount - lastSummarizedCount;
 
     if (unsummarizedMessageCount < SUMMARY_MESSAGE_INTERVAL) {
       return;
     }
 
-    await this.chatSummaryPublisher.publishSummarize(conversationId, totalMessageCount);
+    await this.chatSummaryPublisher.publishSummarize(storeId, conversationId, totalMessageCount);
   }
 }

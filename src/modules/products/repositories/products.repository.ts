@@ -143,4 +143,31 @@ export class ProductsRepository {
 
     return this.productModel.aggregate(pipeline).exec();
   }
+
+  async findByIdInStore(storeId: string, productId: string): Promise<ProductDocument | null> {
+    if (!isValidObjectId(storeId) || !isValidObjectId(productId)) return null;
+
+    return this.productModel
+      .findOne({
+        _id: new Types.ObjectId(productId),
+        storeId: new Types.ObjectId(storeId),
+        status: { $ne: ProductStatus.Hidden },
+      })
+      .exec();
+  }
+
+  async findByStoreAndExternalId(
+    storeId: string,
+    externalId: string,
+  ): Promise<ProductDocument | null> {
+    if (!isValidObjectId(storeId) || !externalId?.trim()) return null;
+
+    return this.productModel
+      .findOne({
+        storeId: new Types.ObjectId(storeId),
+        externalId: externalId.trim(),
+        status: { $ne: ProductStatus.Hidden },
+      })
+      .exec();
+  }
 }

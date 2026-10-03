@@ -2,12 +2,7 @@ import { ProductCard } from '@modules/products/interfaces/product-card.interface
 import { ProductsService } from '@modules/products/products.service';
 import { Injectable, Logger } from '@nestjs/common';
 
-import { ToolCallContext } from '../tools/tool-call-context.interface';
-
-export interface ToolExecutionResult {
-  forModel: string;
-  cards?: ProductCard[];
-}
+import { ToolCallContext, ToolExecutionResult } from '../interfaces/tool.interface';
 
 @Injectable()
 export class ToolExecutor {
@@ -23,6 +18,9 @@ export class ToolExecutor {
     switch (toolName) {
       case 'search_products':
         return this.executeSearchProducts(args, context);
+
+      case 'get_product_variants':
+        return this.executeGetProductVariants(args, context);
 
       default:
         return this.handleUnknownTool(toolName);
@@ -61,6 +59,47 @@ export class ToolExecutor {
       };
     } catch (error) {
       this.logger.error(`Failed to search products for store ${context.storeId}`, error);
+
+      return this.buildModelError('Internal system error occurred.');
+    }
+  }
+
+  private async executeGetProductVariants(
+    args: Record<string, unknown>,
+    context: ToolCallContext,
+  ): Promise<ToolExecutionResult> {
+    const variantId = this.parseStringArg(args.variantId);
+    const productName = this.parseStringArg(args.productName);
+
+    if (!variantId && !productName) {
+      return this.buildModelError('Either variantId or productName must be provided.');
+    }
+
+    try {
+      const result = await this.productsService.getProductVariantsForChat(context.storeId, {
+        variantId,
+        productName,
+      });
+
+      if (!result) {
+        return {
+          forModel: JSON.stringify({
+            result: 'Product not found in the store catalog.',
+          }),
+        };
+      }
+
+      return {
+        forModel: JSON.stringify({
+          productName: result.productName,
+          hasVariants: result.hasVariants,
+          totalVariants: result.variants.length,
+          variants: result.variants,
+        }),
+        cards: result.cards,
+      };
+    } catch (error) {
+      this.logger.error(`Failed to get product variants for store ${context.storeId}`, error);
 
       return this.buildModelError('Internal system error occurred.');
     }

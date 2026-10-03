@@ -1,4 +1,4 @@
-import { LlmTool } from '../interfaces/llm-provider.interface';
+import type { LlmTool } from '../interfaces/tool.interface';
 
 export const SEARCH_PRODUCTS_TOOL: LlmTool = {
   name: 'search_products',
@@ -104,4 +104,44 @@ Do not invent or estimate a budget.
   },
 };
 
-export const ALL_TOOLS: LlmTool[] = [SEARCH_PRODUCTS_TOOL];
+export const GET_PRODUCT_VARIANTS_TOOL: LlmTool = {
+  name: 'get_product_variants',
+
+  description: `
+Get all available sizes, colors, options, and stock availability for a SPECIFIC product that was already mentioned or displayed in the conversation, or when the user asks about options for a specific product by name.
+
+Use this tool when the user asks follow-up questions about a product, such as:
+- "فيه منه مقاس XL؟"
+- "طيب متوفر منه لون أبيض أو بيج؟"
+- "وش الألوان والمقاسات المتوفرة من هذا المنتج؟"
+- "هل باقي منه في المخزون؟"
+
+Do NOT use \`search_products\` for these follow-up availability questions; use \`get_product_variants\` instead so you can inspect all exact variants of that specific product.
+`.trim(),
+
+  parameters: {
+    type: 'object',
+
+    properties: {
+      productName: {
+        type: 'string',
+        description: `
+The exact or closest name of the product being discussed in the conversation context.
+Always provide this from the conversation history so the system can locate the product even if variantId is missing.
+`.trim(),
+      },
+
+      variantId: {
+        type: 'string',
+        description: `
+The variantId of the product if it was previously shown in the conversation (e.g., inside [DISPLAY_CARDS: ...]).
+Provide this whenever available in the recent messages for exact lookup.
+`.trim(),
+      },
+    },
+
+    required: ['productName'],
+  },
+};
+
+export const ALL_TOOLS: LlmTool[] = [SEARCH_PRODUCTS_TOOL, GET_PRODUCT_VARIANTS_TOOL];

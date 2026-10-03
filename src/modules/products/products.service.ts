@@ -17,6 +17,25 @@ export type searchFilters = {
   maxPrice?: number;
 };
 
+export interface GetProductVariantsInput {
+  variantId?: string;
+  productName?: string;
+}
+
+export interface ProductVariantDetailForModel {
+  variantId: string;
+  options: string;
+  price: string;
+  isAvailable: boolean;
+}
+
+export interface ProductVariantsChatResult {
+  productName: string;
+  hasVariants: boolean;
+  variants: ProductVariantDetailForModel[];
+  cards: ProductCard[];
+}
+
 @Injectable()
 export class ProductsService {
   private readonly logger = new Logger(ProductsService.name);
@@ -163,7 +182,9 @@ export class ProductsService {
           currency: chosen.currency,
           imageUrl: product.imageUrl,
           optionsLabel: chosen.optionValues.map((option) => option.value).join(' / '),
-          isAvailable: chosen.status === ProductStatus.Available || chosen.isUnlimitedStock,
+          isAvailable:
+            chosen.status === ProductStatus.Available &&
+            (chosen.isUnlimitedStock || chosen.stockQuantity > 0),
         });
       }),
     );
@@ -202,5 +223,140 @@ export class ProductsService {
     });
 
     return matched ?? variants[0];
+  }
+
+  async getProductVariantsForChat(
+    storeId: string,
+    input: GetProductVariantsInput,
+  ): Promise<ProductVariantsChatResult | null> {
+    const product = await this.resolveTargetProduct(storeId, input);
+
+    if (!product) {
+      return null;
+    }
+
+    if (!product.hasVariants) {
+      const isAvailable = this.checkAvailability(
+        product.status,
+        product.isUnlimitedStock,
+        product.stockQuantity,
+      );
+
+      const card: ProductCard = {
+        type: 'PRODUCT',
+        variantId: product.externalId,
+        name: product.name,
+        priceAmount: product.priceAmount,
+        currency: product.currency,
+        imageUrl: product.imageUrl,
+        isAvailable,
+      };
+
+      return {
+        productName: product.name,
+        hasVariants: false,
+        variants: [
+          {
+            variantId: product.externalId,
+            options: 'منتج قياسي بدون خيارات (مقاسات أو ألوان) إضافية',
+            price: `${product.priceAmount} ${product.currency}`,
+            isAvailable,
+          },
+        ],
+        cards: [card],
+      };
+    }
+
+    const variants = await this.productVariantsRepository.findByProductId(product._id.toString());
+
+    const activeVariants = variants.filter((v) => v.status !== ProductStatus.Hidden);
+
+    const modelVariants: ProductVariantDetailForModel[] = [];
+    const cards: ProductCard[] = [];
+
+    for (const variant of activeVariants) {
+      const isAvailable = this.checkAvailability(
+        variant.status,
+        variant.isUnlimitedStock,
+        variant.stockQuantity,
+      );
+
+      const detailedOptions =
+        variant.optionValues.map((opt) => `${opt.optionName}: ${opt.value}`).join(' / ') || 'N/A';
+
+      const cardOptionsLabel =
+        variant.optionValues.map((opt) => opt.value).join(' / ') || undefined;
+
+      modelVariants.push({
+        variantId: variant.externalId,
+        options: detailedOptions,
+        price: `${variant.priceAmount} ${variant.currency}`,
+        isAvailable,
+      });
+
+      cards.push({
+        type: 'PRODUCT',
+        variantId: variant.externalId,
+        name: product.name,
+        priceAmount: variant.priceAmount,
+        currency: variant.currency,
+        imageUrl: product.imageUrl,
+        optionsLabel: cardOptionsLabel,
+        isAvailable,
+      });
+    }
+
+    return {
+      productName: product.name,
+      hasVariants: true,
+      variants: modelVariants,
+      cards,
+    };
+  }
+
+  private async resolveTargetProduct(
+    storeId: string,
+    input: GetProductVariantsInput,
+  ): Promise<ProductDocument | null> {
+    if (input.variantId) {
+      const variant = await this.productVariantsRepository.findByStoreAndExternalId(
+        storeId,
+        input.variantId,
+      );
+
+      if (variant) {
+        const parentProduct = await this.productsRepository.findByIdInStore(
+          storeId,
+          variant.productId.toString(),
+        );
+        if (parentProduct) return parentProduct;
+      }
+
+      const directProduct = await this.productsRepository.findByStoreAndExternalId(
+        storeId,
+        input.variantId,
+      );
+      if (directProduct) return directProduct;
+    }
+
+    if (input.productName) {
+      const matchedProducts = await this.productsRepository.searchForChat(storeId, {
+        query: input.productName,
+      });
+
+      if (matchedProducts.length > 0) {
+        return matchedProducts[0];
+      }
+    }
+
+    return null;
+  }
+
+  private checkAvailability(
+    status: ProductStatus,
+    isUnlimitedStock: boolean,
+    stockQuantity: number,
+  ): boolean {
+    return status === ProductStatus.Available && (isUnlimitedStock || stockQuantity > 0);
   }
 }
