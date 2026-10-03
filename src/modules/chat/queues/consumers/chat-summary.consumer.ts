@@ -6,8 +6,8 @@ import { NonRetryableMessagingError } from '@shared/messaging/errors/non-retryab
 import { RetryableMessagingError } from '@shared/messaging/errors/retryable-messaging.error';
 import type { RabbitMqMessage } from '@shared/messaging/message.contract';
 import { ROUTING_KEYS } from '@shared/messaging/routing-keys';
-import { ConversationSessionService } from '../../services/conversation-session.service';
-import { ConversationSummaryService } from '../../services/conversation-summary.service';
+import { ConversationSessionService } from '../../services/conversation-store';
+import { ConversationSummaryService } from '../../services/conversation-summarizer';
 import { ChatSummarizePayload } from '../publishers/chat-summary.publisher';
 
 @Injectable()

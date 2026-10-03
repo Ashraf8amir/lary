@@ -2,14 +2,12 @@ import chatConfig from '@config/chat.config';
 import { CacheService } from '@infrastructure/cache/cache.service';
 import { Inject, Injectable } from '@nestjs/common';
 import type { ConfigType } from '@nestjs/config';
-import { LlmMessage } from '../interfaces/llm-provider.interface';
 
-const SESSION_KEY_PREFIX = 'chat:session:';
-const SUMMARY_KEY_PREFIX = 'chat:summary:';
-const SUMMARY_COUNT_KEY_PREFIX = 'chat:summary_count:';
+import { CHAT_CACHE_KEYS } from '../chat.constants';
+import type { LlmMessage } from '../interfaces/llm-provider.interface';
 
 @Injectable()
-export class ConversationSessionService {
+export class ConversationStore {
   constructor(
     private readonly cacheService: CacheService,
     @Inject(chatConfig.KEY)
@@ -17,24 +15,29 @@ export class ConversationSessionService {
   ) {}
 
   async getHistory(conversationId: string): Promise<LlmMessage[]> {
-    const history = await this.cacheService.get<LlmMessage[]>(this.buildKey(conversationId));
-    return history || [];
+    const history = await this.cacheService.get<LlmMessage[]>(this.buildSessionKey(conversationId));
+
+    return history ?? [];
   }
 
   async appendMessages(conversationId: string, newMessages: LlmMessage[]): Promise<void> {
-    const existing = await this.getHistory(conversationId);
-    const updated = [...existing, ...newMessages];
+    if (newMessages.length === 0) {
+      return;
+    }
+
+    const existingMessages = await this.getHistory(conversationId);
 
     await this.cacheService.set(
-      this.buildKey(conversationId),
-      updated,
+      this.buildSessionKey(conversationId),
+      [...existingMessages, ...newMessages],
       this.config.sessionTtlSeconds,
     );
   }
 
   async getSummary(conversationId: string): Promise<string | null> {
     const summary = await this.cacheService.get<string>(this.buildSummaryKey(conversationId));
-    return summary || null;
+
+    return summary ?? null;
   }
 
   async setSummary(conversationId: string, summary: string): Promise<void> {
@@ -47,6 +50,7 @@ export class ConversationSessionService {
 
   async getLastSummarizedCount(conversationId: string): Promise<number> {
     const count = await this.cacheService.get<number>(this.buildSummaryCountKey(conversationId));
+
     return count ?? 0;
   }
 
@@ -58,17 +62,15 @@ export class ConversationSessionService {
     );
   }
 
-  // ################ bildKey methods ################################
-
-  private buildKey(conversationId: string): string {
-    return `${SESSION_KEY_PREFIX}${conversationId}`;
+  private buildSessionKey(conversationId: string): string {
+    return `${CHAT_CACHE_KEYS.SESSION}${conversationId}`;
   }
 
   private buildSummaryKey(conversationId: string): string {
-    return `${SUMMARY_KEY_PREFIX}${conversationId}`;
+    return `${CHAT_CACHE_KEYS.SUMMARY}${conversationId}`;
   }
 
   private buildSummaryCountKey(conversationId: string): string {
-    return `${SUMMARY_COUNT_KEY_PREFIX}${conversationId}`;
+    return `${CHAT_CACHE_KEYS.SUMMARY_COUNT}${conversationId}`;
   }
 }

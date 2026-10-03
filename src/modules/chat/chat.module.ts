@@ -2,27 +2,34 @@ import { RabbitMqInfrastructureModule } from '@/infrastructure/rabbitmq/rabbitmq
 import { Module } from '@nestjs/common';
 import { ProductsModule } from '../products/products.module';
 import { WidgetSettingsModule } from '../widget-settings/widget-settings.module';
-import { LLM_PROVIDER } from './chat.constants';
+import { LLM_PROVIDER, SUMMARY_PROVIDER } from './chat.constants';
 import { ChatController } from './chat.controller';
 import { ChatService } from './chat.service';
 import { GeminiContentMapper } from './mapper/gemini-content.mapper';
 import { SystemPromptBuilder } from './prompts/system-prompt.builder';
+import { GeminiSummaryProvider } from './providers/gemini-summary.provider';
 import { GeminiProvider } from './providers/gemini.provider';
 import { ChatSummaryConsumer } from './queues/consumers/chat-summary.consumer';
 import { ChatSummaryPublisher } from './queues/publishers/chat-summary.publisher';
-import { ConversationSessionService } from './services/conversation-session.service';
-import { ConversationSummaryService } from './services/conversation-summary.service';
-import { ToolExecutorService } from './services/tool-executor.service';
+import { ChatGenerationService } from './services/chat-generation.service';
+import { ChatResponseBuilder } from './services/chat-response.builder';
+import { ConversationSessionService } from './services/conversation-store';
+import { ConversationSummaryService } from './services/conversation-summarizer';
+import { ToolExecutorService } from './services/tool-executor';
 
 @Module({
   imports: [WidgetSettingsModule, ProductsModule, RabbitMqInfrastructureModule],
   controllers: [ChatController],
   providers: [
     GeminiProvider,
-    GeminiContentMapper,
     { provide: LLM_PROVIDER, useExisting: GeminiProvider },
+    GeminiSummaryProvider,
+    { provide: SUMMARY_PROVIDER, useExisting: GeminiSummaryProvider },
+    GeminiContentMapper,
     ChatService,
+    ChatResponseBuilder,
     ConversationSessionService,
+    ChatGenerationService,
     SystemPromptBuilder,
     ToolExecutorService,
     ConversationSummaryService,
