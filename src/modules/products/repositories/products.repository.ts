@@ -170,4 +170,21 @@ export class ProductsRepository {
       })
       .exec();
   }
+
+  async findDistinctCategoriesByStoreId(storeId: string): Promise<string[]> {
+    if (!isValidObjectId(storeId)) return [];
+
+    const categories = await this.productModel
+      .distinct('category', {
+        storeId: new Types.ObjectId(storeId),
+        status: { $ne: ProductStatus.Hidden },
+        category: { $nin: [null, ''] },
+      })
+      .exec();
+
+    return categories
+      .filter((category): category is string => typeof category === 'string')
+      .map((category) => category.trim())
+      .filter(Boolean);
+  }
 }

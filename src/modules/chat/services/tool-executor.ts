@@ -19,8 +19,11 @@ export class ToolExecutor {
       case 'search_products':
         return this.executeSearchProducts(args, context);
 
-      case 'get_product_variants':
-        return this.executeGetProductVariants(args, context);
+      case 'get_product_details':
+        return this.executeGetProductDetails(args, context);
+
+      case 'get_store_categories':
+        return this.executeGetStoreCategories(context);
 
       default:
         return this.handleUnknownTool(toolName);
@@ -64,7 +67,7 @@ export class ToolExecutor {
     }
   }
 
-  private async executeGetProductVariants(
+  private async executeGetProductDetails(
     args: Record<string, unknown>,
     context: ToolCallContext,
   ): Promise<ToolExecutionResult> {
@@ -76,7 +79,7 @@ export class ToolExecutor {
     }
 
     try {
-      const result = await this.productsService.getProductVariantsForChat(context.storeId, {
+      const result = await this.productsService.getProductDetailsForChat(context.storeId, {
         variantId,
         productName,
       });
@@ -92,6 +95,8 @@ export class ToolExecutor {
       return {
         forModel: JSON.stringify({
           productName: result.productName,
+          category: result.category ?? 'N/A',
+          description: result.description ?? 'No additional description provided.',
           hasVariants: result.hasVariants,
           totalVariants: result.variants.length,
           variants: result.variants,
@@ -99,7 +104,7 @@ export class ToolExecutor {
         cards: result.cards,
       };
     } catch (error) {
-      this.logger.error(`Failed to get product variants for store ${context.storeId}`, error);
+      this.logger.error(`Failed to get product details for store ${context.storeId}`, error);
 
       return this.buildModelError('Internal system error occurred.');
     }
@@ -116,6 +121,31 @@ export class ToolExecutor {
         isAvailable: card.isAvailable,
       })),
     };
+  }
+
+  private async executeGetStoreCategories(context: ToolCallContext): Promise<ToolExecutionResult> {
+    try {
+      const categories = await this.productsService.getStoreCategoriesForChat(context.storeId);
+
+      if (categories.length === 0) {
+        return {
+          forModel: JSON.stringify({
+            result: 'No specific categories are defined in this store catalog.',
+          }),
+        };
+      }
+
+      return {
+        forModel: JSON.stringify({
+          totalCategories: categories.length,
+          categories,
+        }),
+      };
+    } catch (error) {
+      this.logger.error(`Failed to get store categories for store ${context.storeId}`, error);
+
+      return this.buildModelError('Internal system error occurred.');
+    }
   }
 
   private handleUnknownTool(toolName: string): ToolExecutionResult {

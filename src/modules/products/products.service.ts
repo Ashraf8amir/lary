@@ -3,6 +3,11 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ClientSession } from 'mongoose';
 import { ProductStatus } from './enums/product-status.enum';
 import { ProductCard } from './interfaces/product-card.interface';
+import {
+  GetProductDetailsInput,
+  ProductDetailsChatResult,
+  ProductVariantDetailForModel,
+} from './interfaces/product-details-chat.interface';
 import { ProductUpsertPayload } from './interfaces/product-upsert-payload.interface';
 import { ProductVariantUpsertPayload } from './interfaces/product-variant-upsert-payload.interface';
 import { ProductVariantsRepository } from './repositories/product-variants.repository';
@@ -16,25 +21,6 @@ export type searchFilters = {
   size?: string;
   maxPrice?: number;
 };
-
-export interface GetProductVariantsInput {
-  variantId?: string;
-  productName?: string;
-}
-
-export interface ProductVariantDetailForModel {
-  variantId: string;
-  options: string;
-  price: string;
-  isAvailable: boolean;
-}
-
-export interface ProductVariantsChatResult {
-  productName: string;
-  hasVariants: boolean;
-  variants: ProductVariantDetailForModel[];
-  cards: ProductCard[];
-}
 
 @Injectable()
 export class ProductsService {
@@ -192,48 +178,18 @@ export class ProductsService {
     return cards;
   }
 
-  private pickBestVariant(
-    variants: ProductVariantDocument[],
-    color?: string,
-    size?: string,
-  ): ProductVariantDocument | undefined {
-    if (!variants || variants.length === 0) return undefined;
-    if (!color && !size) return variants[0];
-
-    const safeColor = color ? color.toLowerCase() : null;
-    const safeSize = size ? size.toLowerCase() : null;
-
-    const matched = variants.find((variant) => {
-      let hasColorMatch = true;
-      let hasSizeMatch = true;
-
-      if (safeColor) {
-        hasColorMatch = variant.optionValues.some((option) =>
-          option.value.toLowerCase().includes(safeColor),
-        );
-      }
-
-      if (safeSize) {
-        hasSizeMatch = variant.optionValues.some((option) =>
-          option.value.toLowerCase().includes(safeSize),
-        );
-      }
-
-      return hasColorMatch && hasSizeMatch;
-    });
-
-    return matched ?? variants[0];
-  }
-
-  async getProductVariantsForChat(
+  async getProductDetailsForChat(
     storeId: string,
-    input: GetProductVariantsInput,
-  ): Promise<ProductVariantsChatResult | null> {
+    input: GetProductDetailsInput,
+  ): Promise<ProductDetailsChatResult | null> {
     const product = await this.resolveTargetProduct(storeId, input);
 
     if (!product) {
       return null;
     }
+
+    const cleanDescription = this.sanitizeDescription(product.description);
+    const category = product.category?.trim() || undefined;
 
     if (!product.hasVariants) {
       const isAvailable = this.checkAvailability(
@@ -254,6 +210,8 @@ export class ProductsService {
 
       return {
         productName: product.name,
+        category,
+        description: cleanDescription,
         hasVariants: false,
         variants: [
           {
@@ -268,7 +226,6 @@ export class ProductsService {
     }
 
     const variants = await this.productVariantsRepository.findByProductId(product._id.toString());
-
     const activeVariants = variants.filter((v) => v.status !== ProductStatus.Hidden);
 
     const modelVariants: ProductVariantDetailForModel[] = [];
@@ -308,15 +265,21 @@ export class ProductsService {
 
     return {
       productName: product.name,
+      category,
+      description: cleanDescription,
       hasVariants: true,
       variants: modelVariants,
       cards,
     };
   }
 
+  async getStoreCategoriesForChat(storeId: string): Promise<string[]> {
+    return this.productsRepository.findDistinctCategoriesByStoreId(storeId);
+  }
+
   private async resolveTargetProduct(
     storeId: string,
-    input: GetProductVariantsInput,
+    input: GetProductDetailsInput,
   ): Promise<ProductDocument | null> {
     if (input.variantId) {
       const variant = await this.productVariantsRepository.findByStoreAndExternalId(
@@ -352,11 +315,57 @@ export class ProductsService {
     return null;
   }
 
+  private sanitizeDescription(description?: string): string | undefined {
+    if (!description) return undefined;
+
+    const plainText = description
+      .replace(/<[^>]*>/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    if (!plainText) return undefined;
+
+    return plainText.length > 500 ? `${plainText.slice(0, 500)}...` : plainText;
+  }
+
   private checkAvailability(
     status: ProductStatus,
     isUnlimitedStock: boolean,
     stockQuantity: number,
   ): boolean {
     return status === ProductStatus.Available && (isUnlimitedStock || stockQuantity > 0);
+  }
+
+  private pickBestVariant(
+    variants: ProductVariantDocument[],
+    color?: string,
+    size?: string,
+  ): ProductVariantDocument | undefined {
+    if (!variants || variants.length === 0) return undefined;
+    if (!color && !size) return variants[0];
+
+    const safeColor = color ? color.toLowerCase() : null;
+    const safeSize = size ? size.toLowerCase() : null;
+
+    const matched = variants.find((variant) => {
+      let hasColorMatch = true;
+      let hasSizeMatch = true;
+
+      if (safeColor) {
+        hasColorMatch = variant.optionValues.some((option) =>
+          option.value.toLowerCase().includes(safeColor),
+        );
+      }
+
+      if (safeSize) {
+        hasSizeMatch = variant.optionValues.some((option) =>
+          option.value.toLowerCase().includes(safeSize),
+        );
+      }
+
+      return hasColorMatch && hasSizeMatch;
+    });
+
+    return matched ?? variants[0];
   }
 }

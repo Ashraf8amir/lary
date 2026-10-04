@@ -21,7 +21,6 @@ export class GeminiSummaryProvider implements SummaryProvider {
   }
 
   async generateSummary(prompt: string, systemPrompt: string): Promise<string | null> {
-    this.logger.debug(prompt);
     try {
       const response = await this.client.models.generateContent({
         model: this.modelName,

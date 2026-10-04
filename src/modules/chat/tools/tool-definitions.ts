@@ -104,19 +104,18 @@ Do not invent or estimate a budget.
   },
 };
 
-export const GET_PRODUCT_VARIANTS_TOOL: LlmTool = {
-  name: 'get_product_variants',
+export const GET_PRODUCT_DETAILS_TOOL: LlmTool = {
+  name: 'get_product_details',
 
   description: `
-Get all available sizes, colors, options, and stock availability for a SPECIFIC product that was already mentioned or displayed in the conversation, or when the user asks about options for a specific product by name.
+Get complete details for a SPECIFIC product, including its full description, material/specifications, category, and all available sizes, colors, prices, and stock status.
 
-Use this tool when the user asks follow-up questions about a product, such as:
-- "فيه منه مقاس XL؟"
-- "طيب متوفر منه لون أبيض أو بيج؟"
-- "وش الألوان والمقاسات المتوفرة من هذا المنتج؟"
-- "هل باقي منه في المخزون؟"
+Use this tool when the user asks follow-up questions about a product that was already mentioned or displayed, such as:
+- Availability of sizes or colors: "فيه منه مقاس XL؟", "متوفر منه لون أبيض؟", "وش الألوان والمقاسات المتوفرة؟"
+- Product details & specs: "وش خامته؟", "إيش مواصفاته أو مكوناته؟", "ممكن تفاصيل أكثر عن هذا المنتج؟"
+- Stock check: "هل باقي منه في المخزون؟"
 
-Do NOT use \`search_products\` for these follow-up availability questions; use \`get_product_variants\` instead so you can inspect all exact variants of that specific product.
+Do NOT use \`search_products\` for follow-up questions about a specific product; use \`get_product_details\` instead.
 `.trim(),
 
   parameters: {
@@ -144,4 +143,25 @@ Provide this whenever available in the recent messages for exact lookup.
   },
 };
 
-export const ALL_TOOLS: LlmTool[] = [SEARCH_PRODUCTS_TOOL, GET_PRODUCT_VARIANTS_TOOL];
+export const GET_STORE_CATEGORIES_TOOL: LlmTool = {
+  name: 'get_store_categories',
+
+  description: `
+Get the list of all available product categories in the store.
+
+Use this tool when:
+- The user asks broad questions about what the store sells: "وش عندكم بالمتجر؟", "إيش تبيعون؟", "وش الأقسام الموجودة؟"
+- The user has a vague shopping request (e.g., "أبغى هدية", "أبي أجهز للعيد") and you want to see the store's actual categories first before recommending or searching.
+`.trim(),
+
+  parameters: {
+    type: 'object',
+    properties: {},
+  },
+};
+
+export const ALL_TOOLS: LlmTool[] = [
+  SEARCH_PRODUCTS_TOOL,
+  GET_PRODUCT_DETAILS_TOOL,
+  GET_STORE_CATEGORIES_TOOL,
+];

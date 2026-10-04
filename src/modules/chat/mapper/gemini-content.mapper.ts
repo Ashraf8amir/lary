@@ -147,10 +147,7 @@ export class GeminiContentMapper {
         }
 
         const partItem: Part = {
-          functionCall: {
-            name: call.toolName,
-            args: argsObj,
-          },
+          functionCall: { name: call.toolName, args: argsObj },
         };
 
         if (call.thoughtSignature) {
