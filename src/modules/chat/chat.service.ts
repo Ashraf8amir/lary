@@ -1,6 +1,6 @@
-import { WidgetSettingsService } from '@modules/widget-settings/widget-settings.service';
-import { Injectable, Logger } from '@nestjs/common';
+import { ForbiddenException, Injectable, Logger } from '@nestjs/common';
 
+import { AssistantSettingsService } from '../assistant-settings/assistant-settings.service';
 import { SLIDING_WINDOW_LIMIT, SUMMARY_MESSAGE_INTERVAL } from './chat.constants';
 import { ChatResponse } from './interfaces/chat.interface';
 import { SystemPromptBuilder } from './prompts/system-prompt.builder';
@@ -17,7 +17,7 @@ export class ChatService {
   constructor(
     private readonly conversationStore: ConversationStore,
     private readonly conversationContext: ConversationContext,
-    private readonly widgetSettingsService: WidgetSettingsService,
+    private readonly assistantSettingsService: AssistantSettingsService,
     private readonly systemPromptBuilder: SystemPromptBuilder,
     private readonly chatGenerationService: ChatGenerationService,
     private readonly chatResponseBuilder: ChatResponseBuilder,
@@ -32,8 +32,12 @@ export class ChatService {
     const [recentHistory, conversationSummary, promptSettings] = await Promise.all([
       this.conversationStore.getHistory(storeId, conversationId),
       this.conversationStore.getSummary(storeId, conversationId),
-      this.widgetSettingsService.getForSystemPrompt(storeId),
+      this.assistantSettingsService.getForSystemPrompt(storeId),
     ]);
+
+    if (!promptSettings.isEnabled) {
+      throw new ForbiddenException('Chat assistant is currently disabled for this store.');
+    }
 
     const safeHistory = this.conversationContext.getRecentHistory(
       recentHistory,

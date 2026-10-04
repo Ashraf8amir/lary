@@ -2,13 +2,17 @@ import { ProductCard } from '@modules/products/interfaces/product-card.interface
 import { ProductsService } from '@modules/products/products.service';
 import { Injectable, Logger } from '@nestjs/common';
 
+import { AssistantSettingsService } from '@/modules/assistant-settings/assistant-settings.service';
 import { ToolCallContext, ToolExecutionResult } from '../interfaces/tool.interface';
 
 @Injectable()
 export class ToolExecutor {
   private readonly logger = new Logger(ToolExecutor.name);
 
-  constructor(private readonly productsService: ProductsService) {}
+  constructor(
+    private readonly productsService: ProductsService,
+    private readonly assistantSettingsService: AssistantSettingsService,
+  ) {}
 
   async execute(
     toolName: string,
@@ -24,6 +28,9 @@ export class ToolExecutor {
 
       case 'get_store_categories':
         return this.executeGetStoreCategories(context);
+
+      case 'get_store_policies':
+        return this.executeGetStorePolicies(context);
 
       default:
         return this.handleUnknownTool(toolName);
@@ -121,6 +128,27 @@ export class ToolExecutor {
         isAvailable: card.isAvailable,
       })),
     };
+  }
+
+  private async executeGetStorePolicies(context: ToolCallContext): Promise<ToolExecutionResult> {
+    try {
+      const policies = await this.assistantSettingsService.getPoliciesForChat(context.storeId);
+
+      return {
+        forModel: JSON.stringify({
+          shippingPolicy: policies.storePolicies.shippingPolicy ?? 'غير محدد في النظام حالياً.',
+          returnPolicy: policies.storePolicies.returnPolicy ?? 'غير محدد في النظام حالياً.',
+          paymentMethods: policies.storePolicies.paymentMethods ?? 'غير محدد في النظام حالياً.',
+          aboutStore: policies.storePolicies.aboutStore ?? 'غير محدد في النظام حالياً.',
+          supportContact: policies.supportContact,
+          faqs: policies.faqs,
+        }),
+      };
+    } catch (error) {
+      this.logger.error(`Failed to get store policies for store ${context.storeId}`, error);
+
+      return this.buildModelError('Internal system error occurred.');
+    }
   }
 
   private async executeGetStoreCategories(context: ToolCallContext): Promise<ToolExecutionResult> {

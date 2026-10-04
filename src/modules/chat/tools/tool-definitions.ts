@@ -160,8 +160,28 @@ Use this tool when:
   },
 };
 
+export const GET_STORE_POLICIES_TOOL: LlmTool = {
+  name: 'get_store_policies',
+
+  description: `
+Get the store's official policies, shipping & delivery details, return & exchange rules, available payment methods (e.g., Tabby, Tamara, Mada, Cash on Delivery), store branches/about info, and frequently asked questions (FAQs).
+
+Use this tool whenever the user asks about:
+- Shipping cost, delivery time, or courier companies ("بكم التوصيل؟", "كم ياخذ الشحن؟")
+- Return or exchange policy ("فيه استرجاع أو استبدال؟")
+- Payment methods or installments ("عندكم تابي أو تمارا؟", "فيه دفع عند الاستلام؟")
+- General store inquiries, branches, working hours, or authenticity FAQs.
+`.trim(),
+
+  parameters: {
+    type: 'object',
+    properties: {},
+  },
+};
+
 export const ALL_TOOLS: LlmTool[] = [
   SEARCH_PRODUCTS_TOOL,
   GET_PRODUCT_DETAILS_TOOL,
   GET_STORE_CATEGORIES_TOOL,
+  GET_STORE_POLICIES_TOOL,
 ];
