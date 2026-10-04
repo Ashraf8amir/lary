@@ -67,13 +67,11 @@ export class ChatService {
       content: generationResult.finalText,
     });
 
-    await this.conversationStore.appendMessages(
+    const totalMessageCount = await this.conversationStore.appendMessages(
       storeId,
       conversationId,
       generationResult.messagesToSave,
     );
-
-    const totalMessageCount = recentHistory.length + generationResult.messagesToSave.length;
 
     this.triggerSummary(storeId, conversationId, totalMessageCount);
 

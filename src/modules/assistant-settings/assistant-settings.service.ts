@@ -44,6 +44,7 @@ export class AssistantSettingsService {
     const full = await this.getCachedOrFetch(storeId);
 
     return {
+      storeId,
       primaryColor: full.primaryColor,
       position: full.position,
       welcomeMessage: full.welcomeMessage,

@@ -3,7 +3,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { ClientSession, isValidObjectId, type Model, Types } from 'mongoose';
 import { ProductStatus } from '../enums/product-status.enum';
 import { ProductUpsertPayload } from '../interfaces/product-upsert-payload.interface';
-import type { searchFilters } from '../products.service';
+import type { SearchFilters } from '../products.service';
 import { Product, ProductDocument } from '../schemas/product.schema';
 @Injectable()
 export class ProductsRepository {
@@ -93,7 +93,7 @@ export class ProductsRepository {
     return result.matchedCount > 0;
   }
 
-  async searchForChat(storeId: string, filters: searchFilters): Promise<ProductDocument[]> {
+  async searchForChat(storeId: string, filters: SearchFilters): Promise<ProductDocument[]> {
     if (!isValidObjectId(storeId)) return [];
 
     const trimmedQuery = filters.query?.trim();

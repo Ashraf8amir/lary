@@ -1,4 +1,3 @@
-import { ProductCard } from '@modules/products/interfaces/product-card.interface';
 import { ProductsService } from '@modules/products/products.service';
 import { Injectable, Logger } from '@nestjs/common';
 
@@ -44,33 +43,44 @@ export class ToolExecutor {
     const query = this.parseStringArg(args.query);
 
     if (!query) {
-      return this.buildModelError('No valid search query provided.');
+      return this.buildModelError('Parameter "query" is required for search_products.');
     }
 
-    const searchOptions = {
-      query,
-      color: this.parseStringArg(args.color),
-      size: this.parseStringArg(args.size),
-      maxPrice: this.parseNumberArg(args.maxPrice),
-    };
+    const maxPrice = this.parseNumberArg(args.maxPrice);
+    const optionFilter = this.parseStringArg(args.optionFilter);
 
     try {
-      const cards = await this.productsService.searchForChat(context.storeId, searchOptions);
+      const cards = await this.productsService.searchForChat(context.storeId, {
+        query,
+        maxPrice,
+        optionFilter,
+      });
 
       if (cards.length === 0) {
         return {
-          forModel: JSON.stringify({ result: 'No products matched the search criteria.' }),
+          forModel: JSON.stringify({
+            result: 'No products found matching the criteria.',
+          }),
         };
       }
 
       return {
-        forModel: JSON.stringify(this.buildProductSearchPayload(cards)),
+        forModel: JSON.stringify({
+          totalFound: cards.length,
+          products: cards.map((card) => ({
+            name: card.name,
+            variantId: card.variantId,
+            price: `${card.priceAmount} ${card.currency}`,
+            options: card.optionsLabel ?? 'قياسي',
+            isAvailable: card.isAvailable,
+          })),
+        }),
         cards,
       };
     } catch (error) {
-      this.logger.error(`Failed to search products for store ${context.storeId}`, error);
+      this.logger.error(`Failed to execute product search for store ${context.storeId}`, error);
 
-      return this.buildModelError('Internal system error occurred.');
+      return this.buildModelError('Internal search error occurred.');
     }
   }
 
@@ -115,19 +125,6 @@ export class ToolExecutor {
 
       return this.buildModelError('Internal system error occurred.');
     }
-  }
-
-  private buildProductSearchPayload(cards: ProductCard[]) {
-    return {
-      totalFound: cards.length,
-      products: cards.map((card) => ({
-        variantId: card.variantId,
-        name: card.name,
-        options: card.optionsLabel || 'N/A',
-        price: `${card.priceAmount} ${card.currency}`,
-        isAvailable: card.isAvailable,
-      })),
-    };
   }
 
   private async executeGetStorePolicies(context: ToolCallContext): Promise<ToolExecutionResult> {

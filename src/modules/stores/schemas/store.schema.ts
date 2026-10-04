@@ -51,6 +51,14 @@ export class Store {
 
   @Prop({
     type: String,
+    required: false,
+    trim: true,
+    index: true,
+  })
+  externalStoreId?: string;
+
+  @Prop({
+    type: String,
     enum: Object.values(StorePlan),
     default: StorePlan.Free,
     index: true,
@@ -69,3 +77,5 @@ export class Store {
 }
 
 export const StoreSchema = SchemaFactory.createForClass(Store);
+
+StoreSchema.index({ platform: 1, externalStoreId: 1 }, { unique: true, sparse: true });

@@ -15,12 +15,11 @@ import { ProductsRepository } from './repositories/products.repository';
 import { ProductVariantDocument } from './schemas/product-variant.schema';
 import { ProductDocument } from './schemas/product.schema';
 
-export type searchFilters = {
+export interface SearchFilters {
   query: string;
-  color?: string;
-  size?: string;
   maxPrice?: number;
-};
+  optionFilter?: string;
+}
 
 @Injectable()
 export class ProductsService {
@@ -130,50 +129,76 @@ export class ProductsService {
     }
   }
 
-  async searchForChat(storeId: string, filters: searchFilters): Promise<ProductCard[]> {
+  async searchForChat(storeId: string, filters: SearchFilters): Promise<ProductCard[]> {
     const products = await this.productsRepository.searchForChat(storeId, {
       query: filters.query,
       maxPrice: filters.maxPrice,
     });
 
+    if (products.length === 0) {
+      return [];
+    }
+
+    const productIdsWithVariants = products
+      .filter((p) => p.hasVariants)
+      .map((p) => p._id.toString());
+
+    const allVariants =
+      productIdsWithVariants.length > 0
+        ? await this.productVariantsRepository.findByProductIds(productIdsWithVariants)
+        : [];
+
+    const variantsByProductId = new Map<string, ProductVariantDocument[]>();
+    for (const variant of allVariants) {
+      if (variant.status === ProductStatus.Hidden) continue;
+
+      const pid = variant.productId.toString();
+      const list = variantsByProductId.get(pid) ?? [];
+      list.push(variant);
+      variantsByProductId.set(pid, list);
+    }
+
     const cards: ProductCard[] = [];
 
-    await Promise.all(
-      products.map(async (product) => {
-        if (!product.hasVariants) {
-          cards.push({
-            type: 'PRODUCT',
-            variantId: product.externalId,
-            name: product.name,
-            priceAmount: product.priceAmount,
-            currency: product.currency,
-            imageUrl: product.imageUrl,
-            isAvailable: product.status === ProductStatus.Available || product.isUnlimitedStock,
-          });
-          return;
-        }
-
-        const variants = await this.productVariantsRepository.findByProductId(
-          product._id.toString(),
-        );
-
-        const chosen = this.pickBestVariant(variants, filters.color, filters.size);
-        if (!chosen) return;
-
+    for (const product of products) {
+      if (!product.hasVariants) {
         cards.push({
           type: 'PRODUCT',
-          variantId: chosen.externalId,
+          variantId: product.externalId,
           name: product.name,
-          priceAmount: chosen.priceAmount,
-          currency: chosen.currency,
+          priceAmount: product.priceAmount,
+          currency: product.currency,
           imageUrl: product.imageUrl,
-          optionsLabel: chosen.optionValues.map((option) => option.value).join(' / '),
-          isAvailable:
-            chosen.status === ProductStatus.Available &&
-            (chosen.isUnlimitedStock || chosen.stockQuantity > 0),
+          productUrl: product.productUrl,
+          isAvailable: this.checkAvailability(
+            product.status,
+            product.isUnlimitedStock,
+            product.stockQuantity,
+          ),
         });
-      }),
-    );
+        continue;
+      }
+
+      const productVariants = variantsByProductId.get(product._id.toString()) ?? [];
+      const chosen = this.pickBestVariant(productVariants, filters.optionFilter);
+      if (!chosen) continue;
+
+      cards.push({
+        type: 'PRODUCT',
+        variantId: chosen.externalId,
+        name: product.name,
+        priceAmount: chosen.priceAmount,
+        currency: chosen.currency,
+        imageUrl: product.imageUrl,
+        productUrl: product.productUrl,
+        optionsLabel: chosen.optionValues.map((option) => option.value).join(' / ') || undefined,
+        isAvailable: this.checkAvailability(
+          chosen.status,
+          chosen.isUnlimitedStock,
+          chosen.stockQuantity,
+        ),
+      });
+    }
 
     return cards;
   }
@@ -205,6 +230,7 @@ export class ProductsService {
         priceAmount: product.priceAmount,
         currency: product.currency,
         imageUrl: product.imageUrl,
+        productUrl: product.productUrl,
         isAvailable,
       };
 
@@ -258,6 +284,7 @@ export class ProductsService {
         priceAmount: variant.priceAmount,
         currency: variant.currency,
         imageUrl: product.imageUrl,
+        productUrl: product.productUrl,
         optionsLabel: cardOptionsLabel,
         isAvailable,
       });
@@ -338,34 +365,47 @@ export class ProductsService {
 
   private pickBestVariant(
     variants: ProductVariantDocument[],
-    color?: string,
-    size?: string,
-  ): ProductVariantDocument | undefined {
-    if (!variants || variants.length === 0) return undefined;
-    if (!color && !size) return variants[0];
+    optionFilter?: string,
+  ): ProductVariantDocument | null {
+    if (variants.length === 0) return null;
 
-    const safeColor = color ? color.toLowerCase() : null;
-    const safeSize = size ? size.toLowerCase() : null;
+    const availableVariants = variants.filter((v) =>
+      this.checkAvailability(v.status, v.isUnlimitedStock, v.stockQuantity),
+    );
 
-    const matched = variants.find((variant) => {
-      let hasColorMatch = true;
-      let hasSizeMatch = true;
+    const pool = availableVariants.length > 0 ? availableVariants : variants;
 
-      if (safeColor) {
-        hasColorMatch = variant.optionValues.some((option) =>
-          option.value.toLowerCase().includes(safeColor),
-        );
+    if (!optionFilter || !optionFilter.trim()) {
+      return pool[0];
+    }
+
+    const filterTokens = optionFilter
+      .toLowerCase()
+      .split(/[\s,/|-]+/)
+      .map((t) => t.trim())
+      .filter((t) => t.length > 0);
+
+    let bestVariant = pool[0];
+    let highestMatchScore = -1;
+
+    for (const variant of pool) {
+      const variantOptionsText = variant.optionValues
+        .map((opt) => `${opt.optionName} ${opt.value}`.toLowerCase())
+        .join(' ');
+
+      let score = 0;
+      for (const token of filterTokens) {
+        if (variantOptionsText.includes(token)) {
+          score++;
+        }
       }
 
-      if (safeSize) {
-        hasSizeMatch = variant.optionValues.some((option) =>
-          option.value.toLowerCase().includes(safeSize),
-        );
+      if (score > highestMatchScore) {
+        highestMatchScore = score;
+        bestVariant = variant;
       }
+    }
 
-      return hasColorMatch && hasSizeMatch;
-    });
-
-    return matched ?? variants[0];
+    return bestVariant;
   }
 }

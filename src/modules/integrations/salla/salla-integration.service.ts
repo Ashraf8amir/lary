@@ -188,6 +188,7 @@ export class SallaIntegrationService {
       },
       () =>
         this.createStoreForMerchant(user._id.toString(), {
+          externalStoreId: String(sallaMerchantId),
           storeName: merchantProfile.storeName,
           avatar: merchantProfile.avatar,
           planType: merchantProfile.planType as StorePlan,
@@ -224,12 +225,18 @@ export class SallaIntegrationService {
 
   private async createStoreForMerchant(
     ownerId: string,
-    storeData: { storeName: string; avatar?: string; planType?: StorePlan },
+    storeData: {
+      externalStoreId: string;
+      storeName: string;
+      avatar?: string;
+      planType?: StorePlan;
+    },
   ): Promise<string> {
     const store = await this.storesService.create({
       name: storeData.storeName,
       ownerId,
       platform: 'salla',
+      externalStoreId: String(storeData.externalStoreId),
       avatar: storeData.avatar,
       planType: storeData.planType ?? StorePlan.Free,
     });

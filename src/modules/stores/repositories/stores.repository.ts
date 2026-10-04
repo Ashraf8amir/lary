@@ -68,4 +68,16 @@ export class StoresRepository {
       )
       .exec();
   }
+
+  async findByExternalStoreId(
+    externalStoreId: string,
+    platform = 'salla',
+  ): Promise<StoreDocument | null> {
+    return this.storeModel
+      .findOne({
+        platform,
+        externalStoreId: externalStoreId.trim(),
+      })
+      .exec();
+  }
 }

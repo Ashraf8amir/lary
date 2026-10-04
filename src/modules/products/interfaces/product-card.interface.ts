@@ -5,6 +5,7 @@ export interface ProductCard {
   priceAmount: number;
   currency: string;
   imageUrl?: string;
+  productUrl?: string;
   optionsLabel?: string;
   isAvailable: boolean;
 }

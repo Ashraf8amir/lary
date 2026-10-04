@@ -58,4 +58,16 @@ export class ProductVariantsRepository {
       })
       .exec();
   }
+
+  async findByProductIds(productIds: string[]): Promise<ProductVariantDocument[]> {
+    const validObjectIds = productIds
+      .filter((id) => isValidObjectId(id))
+      .map((id) => new Types.ObjectId(id));
+
+    if (validObjectIds.length === 0) {
+      return [];
+    }
+
+    return this.variantModel.find({ productId: { $in: validObjectIds } }).exec();
+  }
 }

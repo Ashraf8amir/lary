@@ -5,6 +5,13 @@ import { StoreStatus } from '../enums/store-status.enum';
 
 export class CreateStoreDto {
   @IsString()
+  @IsOptional()
+  @Transform(({ value }: { value?: string | number }) =>
+    value !== undefined && value !== null ? String(value).trim() : value,
+  )
+  externalStoreId?: string;
+
+  @IsString()
   @IsNotEmpty({ message: 'Store name is required' })
   @MaxLength(200)
   @Transform(({ value }: { value?: string }) => (typeof value === 'string' ? value.trim() : value))

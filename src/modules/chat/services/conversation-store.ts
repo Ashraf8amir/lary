@@ -3,7 +3,7 @@ import { CacheService } from '@infrastructure/cache/cache.service';
 import { Inject, Injectable } from '@nestjs/common';
 import type { ConfigType } from '@nestjs/config';
 
-import { CHAT_CACHE_KEYS } from '../chat.constants';
+import { CHAT_CACHE_KEYS, SLIDING_WINDOW_LIMIT } from '../chat.constants';
 import type { LlmMessage } from '../interfaces/llm-provider.interface';
 
 @Injectable()
@@ -14,28 +14,38 @@ export class ConversationStore {
     private readonly config: ConfigType<typeof chatConfig>,
   ) {}
 
-  async getHistory(storeId: string, conversationId: string): Promise<LlmMessage[]> {
-    const history = await this.cacheService.get<LlmMessage[]>(
+  async getHistory(
+    storeId: string,
+    conversationId: string,
+    start = 0,
+    stop = -1,
+  ): Promise<LlmMessage[]> {
+    return this.cacheService.lrange<LlmMessage>(
       this.buildSessionKey(storeId, conversationId),
+      start,
+      stop,
     );
+  }
 
-    return Array.isArray(history) ? history.filter(Boolean) : [];
+  async getRecentHistory(storeId: string, conversationId: string): Promise<LlmMessage[]> {
+    const limit = SLIDING_WINDOW_LIMIT;
+    return this.cacheService.lrange<LlmMessage>(
+      this.buildSessionKey(storeId, conversationId),
+      -limit,
+      -1,
+    );
   }
 
   async appendMessages(
     storeId: string,
     conversationId: string,
     newMessages: LlmMessage[],
-  ): Promise<void> {
-    if (newMessages.length === 0) {
-      return;
-    }
+  ): Promise<number> {
+    const key = this.buildSessionKey(storeId, conversationId);
 
-    const existingMessages = await this.getHistory(storeId, conversationId);
-
-    await this.cacheService.set(
-      this.buildSessionKey(storeId, conversationId),
-      [...existingMessages, ...newMessages],
+    return this.cacheService.rpushWithTtl<LlmMessage>(
+      key,
+      newMessages,
       this.config.sessionTtlSeconds,
     );
   }

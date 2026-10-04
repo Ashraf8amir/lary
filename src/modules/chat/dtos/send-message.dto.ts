@@ -10,7 +10,14 @@ export class SendMessageDto {
 
   @IsString({ message: 'message must be a string' })
   @IsNotEmpty({ message: 'message is required' })
-  @MaxLength(1000, { message: 'message must not exceed 1000 characters' })
-  @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
+  @MaxLength(500, { message: 'message must not exceed 500 characters' })
+  @Transform(({ value }: { value?: unknown }) => {
+    if (typeof value !== 'string') return value;
+
+    return value
+      .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, '')
+      .replace(/\[DISPLAY_CARDS:[^\]]*\]/gi, '')
+      .trim();
+  })
   message!: string;
 }

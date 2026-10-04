@@ -18,7 +18,7 @@ export interface StoreFaqData {
   answer: string;
 }
 
-export interface PublicAssistantSettings {
+export interface BaseAssistantSettings {
   primaryColor: string;
   position: WidgetPosition;
   welcomeMessage: string;
@@ -28,7 +28,11 @@ export interface PublicAssistantSettings {
   supportContact: SupportContactData;
 }
 
-export interface FullAssistantSettings extends PublicAssistantSettings {
+export interface PublicAssistantSettings extends BaseAssistantSettings {
+  storeId: string;
+}
+
+export interface FullAssistantSettings extends BaseAssistantSettings {
   storePolicies: StorePoliciesData;
   faqs: StoreFaqData[];
 }

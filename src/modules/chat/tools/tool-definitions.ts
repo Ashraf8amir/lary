@@ -4,28 +4,8 @@ export const SEARCH_PRODUCTS_TOOL: LlmTool = {
   name: 'search_products',
 
   description: `
-Search the store catalog when the user wants to find, browse, buy, or get recommendations for products.
-
-Use this tool for both direct and indirect shopping requests.
-
-Direct examples:
-- "أبي تيشيرت أسود"
-- "أبغى حذاء رياضي"
-- "وش عندكم جواتي؟"
-
-Indirect examples:
-- "أبغى هدية للوالدة"
-- "أبي شي للشتا"
-- "وش عندكم حق البر؟"
-
-The user may speak Khaliji Arabic. Normalize obvious dialect or slang
-terms when the meaning is clear, but do not guess unclear meanings.
-
-Do not use this tool for general conversation or when the user only
-mentions a product without showing shopping intent.
-
-Do not invent product attributes such as color, size, or price.
-Only extract filters that are explicitly mentioned or clearly implied.
+Search the store catalog for products matching the customer's request.
+Works across all store types (fashion, coffee & food, perfumes, electronics, etc.).
 `.trim(),
 
   parameters: {
@@ -35,67 +15,25 @@ Only extract filters that are explicitly mentioned or clearly implied.
       query: {
         type: 'string',
         description: `
-The main product or shopping intent extracted from the user's message.
-
-Normalize common Khaliji Arabic terms when the meaning is clear.
-Examples:
-- "جواتي" -> "حذاء"
-- "دريس" -> "فستان"
-
-For indirect shopping requests, convert the intent into a useful
-product category when the meaning is clear.
-Examples:
-- "هدية للوالدة" -> "هدايا نسائية"
-- "شي للشتا" -> "ملابس شتوية"
-- "حق البر" -> "مستلزمات البر"
-
-Keep the query focused on the product or category being searched.
-`.trim(),
-      },
-
-      color: {
-        type: 'string',
-        description: `
-The color explicitly mentioned by the user.
-
-Examples:
-- "تيشيرت أسود" -> "أسود"
-- "حذاء كحلي" -> "كحلي"
-- "شنطة عنابي" -> "عنابي"
-
-Return undefined when no color is mentioned.
-Do not invent or assume a color.
-`.trim(),
-      },
-
-      size: {
-        type: 'string',
-        description: `
-The size explicitly mentioned by the user.
-
-Examples:
-- "مقاس L" -> "L"
-- "مقاس XL" -> "XL"
-- "مقاس 42" -> "42"
-- "مقاس كبير" -> "كبير"
-
-Return undefined when no size is mentioned.
-Do not infer a size from the product or user context.
+Core product search keywords in Arabic or English (e.g., "فستان سهرة", "قهوة إثيوبي", "عطر عود", "سماعات بلوتوث").
+Do NOT include prices or variant options (like size, weight, color) inside the query string.
 `.trim(),
       },
 
       maxPrice: {
         type: 'number',
+        description: 'Maximum price budget if specified by the customer (e.g., "تحت 200 ريال").',
+      },
+
+      optionFilter: {
+        type: 'string',
         description: `
-The maximum price or budget explicitly specified by the user.
-
+Optional variant attribute or preference requested by the customer, regardless of the store category.
 Examples:
-- "ما يتعدى 200 ريال" -> 200
-- "بحدود 500" -> 500
-- "أبي شيء أقل من 100" -> 100
-
-Return undefined when no price limit is mentioned.
-Do not invent or estimate a budget.
+- Fashion: color or size ("أسود", "XL", "أبيض L")
+- Coffee/Food: weight or grind/roast ("250 جرام", "حبوب كاملة", "مطحون إسبريسو", "1 كيلو")
+- Perfumes/Cosmetics: volume or concentration ("100 مل", "50ml")
+- Electronics: storage capacity or color ("256 جيجا", "تيتانيوم")
 `.trim(),
       },
     },

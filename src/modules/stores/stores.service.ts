@@ -2,6 +2,7 @@ import { BusinessException, ErrorCode } from '@common';
 import { Injectable } from '@nestjs/common';
 import { CreateStoreDto } from './dtos/create-store.dto';
 import { UpdateStoreDto } from './dtos/update-store.dto';
+import { StoreStatus } from './enums/store-status.enum';
 import { StoresRepository } from './repositories/stores.repository';
 import { StoreDocument } from './schemas/store.schema';
 
@@ -41,5 +42,17 @@ export class StoresService {
 
   async markOnboardingCompleted(id: string): Promise<StoreDocument | null> {
     return this.storesRepository.markOnboardingCompleted(id);
+  }
+
+  async getActiveStoreIdByExternalId(externalStoreId: string, platform = 'salla'): Promise<string> {
+    const store = await this.storesRepository.findByExternalStoreId(externalStoreId, platform);
+
+    if (!store || store.status !== StoreStatus.Active) {
+      throw new BusinessException('Store not found or inactive', {
+        errorCode: ErrorCode.NOT_FOUND,
+      });
+    }
+
+    return store._id.toString();
   }
 }

@@ -2,7 +2,6 @@ import { CHAT_CONVERSATION_EXCHANGE } from '@/infrastructure/rabbitmq/rabbitmq.c
 import { RabbitMqMessageHandler } from '@/infrastructure/rabbitmq/rabbitmq.message-handler';
 import { Nack, RabbitSubscribe } from '@golevelup/nestjs-rabbitmq';
 import { Injectable, Logger } from '@nestjs/common';
-import { NonRetryableMessagingError } from '@shared/messaging/errors/non-retryable-messaging.error';
 import { RetryableMessagingError } from '@shared/messaging/errors/retryable-messaging.error';
 import type { RabbitMqMessage } from '@shared/messaging/message.contract';
 import { ROUTING_KEYS } from '@shared/messaging/routing-keys';
@@ -41,17 +40,10 @@ export class ChatSummaryConsumer {
   }: ChatSummarizePayload): Promise<void> {
     this.logger.log(`Processing summary for store: ${storeId}, conversation: ${conversationId}`);
 
-    const [allMessages, existingSummary, lastSummarizedCount] = await Promise.all([
-      this.conversationStore.getHistory(storeId, conversationId),
+    const [existingSummary, lastSummarizedCount] = await Promise.all([
       this.conversationStore.getSummary(storeId, conversationId),
       this.conversationStore.getLastSummarizedCount(storeId, conversationId),
     ]);
-
-    if (!allMessages || allMessages.length === 0) {
-      throw new NonRetryableMessagingError(
-        `No history found for store: ${storeId}, conversation: ${conversationId}`,
-      );
-    }
 
     if (totalMessagesCount <= lastSummarizedCount) {
       this.logger.debug(
@@ -60,7 +52,12 @@ export class ChatSummaryConsumer {
       return;
     }
 
-    const unsummarizedMessages = allMessages.slice(lastSummarizedCount, totalMessagesCount);
+    const unsummarizedMessages = await this.conversationStore.getHistory(
+      storeId,
+      conversationId,
+      lastSummarizedCount,
+      totalMessagesCount - 1,
+    );
 
     if (unsummarizedMessages.length === 0) {
       return;
