@@ -44,11 +44,11 @@ export class AssistantSettingsController {
   }
 
   @Public()
-  @Get('public/:externalStoreId')
+  @Get('public/:merchantId')
   @HttpCode(HttpStatus.OK)
   @ResponseMessage('Public assistant settings retrieved')
-  async getPublic(@Param('externalStoreId') externalStoreId: string) {
-    const storeId = await this.storesService.getActiveStoreIdByExternalId(externalStoreId);
+  async getPublic(@Param('merchantId') merchantId: string) {
+    const storeId = await this.storesService.getActiveStoreIdByMerchantId(merchantId);
 
     return this.assistantSettingsService.getPublicSettings(storeId);
   }

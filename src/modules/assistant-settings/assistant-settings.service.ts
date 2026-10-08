@@ -55,7 +55,7 @@ export class AssistantSettingsService {
     };
   }
 
-  async getForSystemPrompt(storeId: string): Promise<SystemPromptAssistantSettings> {
+  async getForPromptSettings(storeId: string): Promise<SystemPromptAssistantSettings> {
     const full = await this.getCachedOrFetch(storeId);
 
     return {

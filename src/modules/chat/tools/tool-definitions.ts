@@ -20,6 +20,12 @@ Do NOT include prices or variant options (like size, weight, color) inside the q
 `.trim(),
       },
 
+      category: {
+        type: 'string',
+        description:
+          'Optional store category name to filter by (especially if known from get_store_categories).',
+      },
+
       maxPrice: {
         type: 'number',
         description: 'Maximum price budget if specified by the customer (e.g., "تحت 200 ريال").',

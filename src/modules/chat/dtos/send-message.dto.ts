@@ -10,7 +10,7 @@ export class SendMessageDto {
 
   @IsString({ message: 'message must be a string' })
   @IsNotEmpty({ message: 'message is required' })
-  @MaxLength(500, { message: 'message must not exceed 500 characters' })
+  @MaxLength(1000, { message: 'message must not exceed 1000 characters' })
   @Transform(({ value }: { value?: unknown }) => {
     if (typeof value !== 'string') return value;
 

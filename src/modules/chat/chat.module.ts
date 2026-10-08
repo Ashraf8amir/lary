@@ -5,9 +5,9 @@ import { RabbitMqInfrastructureModule } from '@/infrastructure/rabbitmq/rabbitmq
 import { ProductsModule } from '../products/products.module';
 
 import { AssistantSettingsModule } from '../assistant-settings/assistant-settings.module';
-import { LLM_PROVIDER, SUMMARY_PROVIDER } from './chat.constants';
 import { ChatController } from './chat.controller';
 import { ChatService } from './chat.service';
+import { LLM_PROVIDER, SUMMARY_PROVIDER } from './constants/chat.constants';
 import { GeminiContentMapper } from './mapper/gemini-content.mapper';
 import { SystemPromptBuilder } from './prompts/system-prompt.builder';
 import { GeminiSummaryProvider } from './providers/gemini-summary.provider';

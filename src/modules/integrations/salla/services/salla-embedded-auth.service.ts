@@ -4,18 +4,9 @@ import { StoresService } from '@modules/stores/stores.service';
 import { Injectable, Logger } from '@nestjs/common';
 import { Types } from 'mongoose';
 import { SallaEmbeddedClient } from '../clients/salla-embedded.client';
+import { EmbeddedNextStep } from '../enums/salla-embedded.enum';
+import { EmbeddedSessionResult } from '../interfaces/salla-integration.interface';
 import { SallaIntegrationRepository } from '../repositories/salla-integration.repository';
-
-export enum EmbeddedNextStep {
-  CompleteOnboarding = 'complete_onboarding',
-  Dashboard = 'dashboard',
-}
-
-export interface EmbeddedSessionResult {
-  accessToken: string;
-  accessTokenExpiresAt: Date;
-  nextStep: EmbeddedNextStep;
-}
 
 @Injectable()
 export class SallaEmbeddedAuthService {
@@ -32,7 +23,7 @@ export class SallaEmbeddedAuthService {
     const { merchant_id: sallaMerchantId } =
       await this.sallaEmbeddedClient.introspectToken(embeddedToken);
 
-    const integration = await this.integrationRepository.findBySallaStoreId(
+    const integration = await this.integrationRepository.findByMerchantId(
       sallaMerchantId.toString(),
     );
 

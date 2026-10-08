@@ -1,8 +1,14 @@
-import { ProductsService } from '@modules/products/products.service';
-import { Injectable, Logger } from '@nestjs/common';
-
 import { AssistantSettingsService } from '@/modules/assistant-settings/assistant-settings.service';
+import { ProductsService } from '@/modules/products/services/products.service';
+import { Injectable, Logger } from '@nestjs/common';
 import { ToolCallContext, ToolExecutionResult } from '../interfaces/tool.interface';
+
+export enum AssistantToolName {
+  SearchProducts = 'search_products',
+  GetProductDetails = 'get_product_details',
+  GetStoreCategories = 'get_store_categories',
+  GetStorePolicies = 'get_store_policies',
+}
 
 @Injectable()
 export class ToolExecutor {
@@ -18,17 +24,17 @@ export class ToolExecutor {
     args: Record<string, unknown>,
     context: ToolCallContext,
   ): Promise<ToolExecutionResult> {
-    switch (toolName) {
-      case 'search_products':
+    switch (toolName as AssistantToolName) {
+      case AssistantToolName.SearchProducts:
         return this.executeSearchProducts(args, context);
 
-      case 'get_product_details':
+      case AssistantToolName.GetProductDetails:
         return this.executeGetProductDetails(args, context);
 
-      case 'get_store_categories':
+      case AssistantToolName.GetStoreCategories:
         return this.executeGetStoreCategories(context);
 
-      case 'get_store_policies':
+      case AssistantToolName.GetStorePolicies:
         return this.executeGetStorePolicies(context);
 
       default:
@@ -41,18 +47,21 @@ export class ToolExecutor {
     context: ToolCallContext,
   ): Promise<ToolExecutionResult> {
     const query = this.parseStringArg(args.query);
-
-    if (!query) {
-      return this.buildModelError('Parameter "query" is required for search_products.');
-    }
-
     const maxPrice = this.parseNumberArg(args.maxPrice);
+    const category = this.parseStringArg(args.category);
     const optionFilter = this.parseStringArg(args.optionFilter);
+
+    if (!query && !category && maxPrice === undefined) {
+      return this.buildModelError(
+        'At least one of "query", "category", or "maxPrice" must be provided for search_products.',
+      );
+    }
 
     try {
       const cards = await this.productsService.searchForChat(context.storeId, {
-        query,
+        query: query ?? category ?? '',
         maxPrice,
+        category,
         optionFilter,
       });
 
@@ -71,6 +80,10 @@ export class ToolExecutor {
             name: card.name,
             variantId: card.variantId,
             price: `${card.priceAmount} ${card.currency}`,
+            ...(card.regularPriceAmount
+              ? { regularPriceBeforeDiscount: `${card.regularPriceAmount} ${card.currency}` }
+              : {}),
+            ...(card.promotionTitle ? { promotion: card.promotionTitle } : {}),
             options: card.optionsLabel ?? 'قياسي',
             isAvailable: card.isAvailable,
           })),
@@ -79,7 +92,6 @@ export class ToolExecutor {
       };
     } catch (error) {
       this.logger.error(`Failed to execute product search for store ${context.storeId}`, error);
-
       return this.buildModelError('Internal search error occurred.');
     }
   }
@@ -113,7 +125,13 @@ export class ToolExecutor {
         forModel: JSON.stringify({
           productName: result.productName,
           category: result.category ?? 'N/A',
+          ...(result.categories?.length ? { categories: result.categories } : {}),
+          ...(result.brand ? { brand: result.brand } : {}),
           description: result.description ?? 'No additional description provided.',
+          ...(result.promotion ? { promotion: result.promotion } : {}),
+          ...(result.rating ? { rating: result.rating } : {}),
+          ...(result.calories ? { calories: result.calories } : {}),
+          ...(result.weight ? { weight: result.weight } : {}),
           hasVariants: result.hasVariants,
           totalVariants: result.variants.length,
           variants: result.variants,
@@ -122,7 +140,6 @@ export class ToolExecutor {
       };
     } catch (error) {
       this.logger.error(`Failed to get product details for store ${context.storeId}`, error);
-
       return this.buildModelError('Internal system error occurred.');
     }
   }
@@ -143,7 +160,6 @@ export class ToolExecutor {
       };
     } catch (error) {
       this.logger.error(`Failed to get store policies for store ${context.storeId}`, error);
-
       return this.buildModelError('Internal system error occurred.');
     }
   }
@@ -168,14 +184,12 @@ export class ToolExecutor {
       };
     } catch (error) {
       this.logger.error(`Failed to get store categories for store ${context.storeId}`, error);
-
       return this.buildModelError('Internal system error occurred.');
     }
   }
 
   private handleUnknownTool(toolName: string): ToolExecutionResult {
     this.logger.warn(`Unknown tool requested by model: ${toolName}`);
-
     return this.buildModelError(`Tool ${toolName} is not available.`);
   }
 
@@ -189,15 +203,21 @@ export class ToolExecutor {
     }
 
     const normalizedValue = value.trim();
-
     return normalizedValue || undefined;
   }
 
   private parseNumberArg(value: unknown): number | undefined {
-    if (typeof value !== 'number' || !Number.isFinite(value) || value < 0) {
-      return undefined;
+    if (typeof value === 'number' && Number.isFinite(value) && value >= 0) {
+      return value;
     }
 
-    return value;
+    if (typeof value === 'string' && value.trim() !== '') {
+      const parsed = Number(value);
+      if (Number.isFinite(parsed) && parsed >= 0) {
+        return parsed;
+      }
+    }
+
+    return undefined;
   }
 }

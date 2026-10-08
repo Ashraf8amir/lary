@@ -16,13 +16,15 @@ import {
 import { Throttle } from '@nestjs/throttler';
 import { EmbeddedSessionDto } from './dtos/embedded-session.dto';
 import { SallaWebhookPayloadDto } from './dtos/salla-webhook.dto';
-import { SallaIntegrationService } from './salla-integration.service';
 import { SallaEmbeddedAuthService } from './services/salla-embedded-auth.service';
+import { SallaIntegrationService } from './services/salla-integration.service';
+import { SallaWebhookService } from './services/salla-webhook.service';
 
 @Controller('integrations/salla')
 export class SallaIntegrationController {
   constructor(
     private readonly sallaIntegrationService: SallaIntegrationService,
+    private readonly sallaWebhookService: SallaWebhookService,
     private readonly sallaEmbeddedAuthService: SallaEmbeddedAuthService,
     private readonly storesService: StoresService,
   ) {}
@@ -36,7 +38,7 @@ export class SallaIntegrationController {
     @RawBody() rawBody: Buffer,
     @Headers('x-salla-signature') signature?: string,
   ) {
-    await this.sallaIntegrationService.handleWebhook(payload, rawBody, signature);
+    await this.sallaWebhookService.handleWebhook(payload, rawBody, signature);
     return { success: true };
   }
 

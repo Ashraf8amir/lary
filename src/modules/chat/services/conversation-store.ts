@@ -3,7 +3,7 @@ import { CacheService } from '@infrastructure/cache/cache.service';
 import { Inject, Injectable } from '@nestjs/common';
 import type { ConfigType } from '@nestjs/config';
 
-import { CHAT_CACHE_KEYS, SLIDING_WINDOW_LIMIT } from '../chat.constants';
+import { CHAT_CACHE_KEYS, SLIDING_WINDOW_LIMIT } from '../constants/chat.constants';
 import type { LlmMessage } from '../interfaces/llm-provider.interface';
 
 @Injectable()

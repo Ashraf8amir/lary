@@ -15,11 +15,12 @@ import { SallaReconciliationJob } from './queue/jobs/salla-reconciliation.job';
 import { SallaProductSyncPublisher } from './queue/publishers/salla-product-sync.publisher';
 import { SallaIntegrationRepository } from './repositories/salla-integration.repository';
 import { SallaIntegrationController } from './salla-integration.controller';
-import { SallaIntegrationService } from './salla-integration.service';
 import { SallaIntegration, SallaIntegrationSchema } from './schemas/salla-integration.schema';
 import { SallaEmbeddedAuthService } from './services/salla-embedded-auth.service';
+import { SallaIntegrationService } from './services/salla-integration.service';
 import { SallaSyncService } from './services/salla-sync.service';
 import { SallaTokenService } from './services/salla-token.service';
+import { SallaWebhookService } from './services/salla-webhook.service';
 
 @Module({
   imports: [
@@ -35,6 +36,7 @@ import { SallaTokenService } from './services/salla-token.service';
     SallaIntegrationRepository,
     SallaTokenService,
     SallaIntegrationService,
+    SallaWebhookService,
     SallaSyncService,
     SallaHttpClient,
     SallaApiClient,

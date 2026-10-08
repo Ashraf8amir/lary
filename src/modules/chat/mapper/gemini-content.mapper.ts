@@ -1,4 +1,11 @@
-import { FunctionDeclaration, GenerateContentResponse, Part, Schema, Type } from '@google/genai';
+import {
+  Content,
+  FunctionDeclaration,
+  GenerateContentResponse,
+  Part,
+  Schema,
+  Type,
+} from '@google/genai';
 import { Injectable } from '@nestjs/common';
 import type {
   LlmMessage,
@@ -13,29 +20,48 @@ import type {
 
 @Injectable()
 export class GeminiContentMapper {
-  toGeminiContents(messages: LlmMessage[]) {
+  toGeminiContents(messages: LlmMessage[]): Content[] {
     if (!Array.isArray(messages) || messages.length === 0) {
       return [];
     }
 
     const nonSystemMessages = messages.filter((msg) => msg.role !== 'system');
+    const sanitizedMessages = this.sanitizeHistoricalToolMessages(nonSystemMessages);
 
-    const sanitizedMessages = this.filterHistoricalTools(nonSystemMessages);
+    const contents: Content[] = [];
 
-    return sanitizedMessages.map((message) => {
+    for (const message of sanitizedMessages) {
       if (message.role === 'tool') {
-        return this.formatActiveToolResponse(message);
+        const toolPart = this.buildToolResponsePart(message);
+        const lastContent = contents[contents.length - 1];
+
+        if (
+          lastContent &&
+          lastContent.role === 'user' &&
+          lastContent.parts?.some((p) => p.functionResponse)
+        ) {
+          lastContent.parts.push(toolPart);
+        } else {
+          contents.push({
+            role: 'user',
+            parts: [toolPart],
+          });
+        }
+        continue;
       }
 
       if (message.role === 'assistant' && message.toolCalls && message.toolCalls.length > 0) {
-        return this.formatAssistantToolCallMessage(message);
+        contents.push(this.formatAssistantToolCallMessage(message));
+        continue;
       }
 
-      return {
-        role: message.role === 'assistant' ? ('model' as const) : ('user' as const),
+      contents.push({
+        role: message.role === 'assistant' ? 'model' : 'user',
         parts: [{ text: message.content || '' }],
-      };
-    });
+      });
+    }
+
+    return contents;
   }
 
   toGeminiTool(tool: LlmTool): FunctionDeclaration {
@@ -85,7 +111,7 @@ export class GeminiContentMapper {
 
   // ---- internal helpers (message formatting) ----
 
-  private formatActiveToolResponse(message: LlmMessage) {
+  private buildToolResponsePart(message: LlmMessage): Part {
     let parsedResponse: Record<string, unknown>;
     try {
       const parsed =
@@ -99,33 +125,43 @@ export class GeminiContentMapper {
     }
 
     return {
-      role: 'user' as const,
-      parts: [
-        {
-          functionResponse: {
-            name: message.toolName ?? '',
-            response: parsedResponse,
-          },
-        },
-      ],
+      functionResponse: {
+        id: message.toolCallId,
+        name: message.toolName ?? '',
+        response: parsedResponse,
+      },
     };
   }
 
-  private filterHistoricalTools(messages: LlmMessage[]): LlmMessage[] {
+  private sanitizeHistoricalToolMessages(messages: LlmMessage[]): LlmMessage[] {
     const lastUserIndex = messages.findLastIndex((m) => m.role === 'user');
+    const result: LlmMessage[] = [];
 
-    return messages.filter((msg, idx) => {
+    for (let idx = 0; idx < messages.length; idx++) {
+      const msg = messages[idx];
+
       if (idx < lastUserIndex) {
-        if (msg.role === 'tool') return false;
-        if (msg.role === 'assistant' && msg.toolCalls?.length && !msg.content?.trim()) {
-          return false;
+        if (msg.role === 'tool') {
+          continue;
+        }
+        if (msg.role === 'assistant' && msg.toolCalls?.length) {
+          if (msg.content?.trim()) {
+            result.push({
+              role: 'assistant',
+              content: msg.content.trim(),
+            });
+          }
+          continue;
         }
       }
-      return true;
-    });
+
+      result.push(msg);
+    }
+
+    return result;
   }
 
-  private formatAssistantToolCallMessage(message: LlmMessage) {
+  private formatAssistantToolCallMessage(message: LlmMessage): Content {
     const parts: Part[] = [];
 
     if (message.content?.trim()) {
@@ -147,7 +183,11 @@ export class GeminiContentMapper {
         }
 
         const partItem: Part = {
-          functionCall: { name: call.toolName, args: argsObj },
+          functionCall: {
+            id: call.id,
+            name: call.toolName,
+            args: argsObj,
+          },
         };
 
         if (call.thoughtSignature) {
@@ -159,7 +199,7 @@ export class GeminiContentMapper {
     }
 
     return {
-      role: 'model' as const,
+      role: 'model',
       parts: parts.length > 0 ? parts : [{ text: '' }],
     };
   }

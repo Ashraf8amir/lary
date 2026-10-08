@@ -1,7 +1,7 @@
 import { ForbiddenException, Injectable, Logger } from '@nestjs/common';
 
 import { AssistantSettingsService } from '../assistant-settings/assistant-settings.service';
-import { SLIDING_WINDOW_LIMIT, SUMMARY_MESSAGE_INTERVAL } from './chat.constants';
+import { SLIDING_WINDOW_LIMIT, SUMMARY_MESSAGE_INTERVAL } from './constants/chat.constants';
 import { ChatResponse } from './interfaces/chat.interface';
 import { SystemPromptBuilder } from './prompts/system-prompt.builder';
 import { ChatSummaryPublisher } from './queues/publishers/chat-summary.publisher';
@@ -29,15 +29,16 @@ export class ChatService {
     storeId: string,
     userMessage: string,
   ): Promise<ChatResponse> {
-    const [recentHistory, conversationSummary, promptSettings] = await Promise.all([
-      this.conversationStore.getHistory(storeId, conversationId),
-      this.conversationStore.getSummary(storeId, conversationId),
-      this.assistantSettingsService.getForSystemPrompt(storeId),
-    ]);
+    const promptSettings = await this.assistantSettingsService.getForPromptSettings(storeId);
 
     if (!promptSettings.isEnabled) {
       throw new ForbiddenException('Chat assistant is currently disabled for this store.');
     }
+
+    const [recentHistory, conversationSummary] = await Promise.all([
+      this.conversationStore.getHistory(storeId, conversationId),
+      this.conversationStore.getSummary(storeId, conversationId),
+    ]);
 
     const safeHistory = this.conversationContext.getRecentHistory(
       recentHistory,
@@ -62,15 +63,18 @@ export class ChatService {
       generationResult.cards,
     );
 
-    generationResult.messagesToSave.push({
-      role: 'assistant',
-      content: generationResult.finalText,
-    });
+    const messagesToPersist = [
+      ...generationResult.messagesToSave,
+      {
+        role: 'assistant' as const,
+        content: response.cleanReplyText,
+      },
+    ];
 
     const totalMessageCount = await this.conversationStore.appendMessages(
       storeId,
       conversationId,
-      generationResult.messagesToSave,
+      messagesToPersist,
     );
 
     this.triggerSummary(storeId, conversationId, totalMessageCount);

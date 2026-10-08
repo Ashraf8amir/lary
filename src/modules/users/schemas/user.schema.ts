@@ -24,6 +24,7 @@ export class User {
     default: '',
     trim: true,
     maxLength: 100,
+    minLength: 2,
   })
   fullName!: string;
 

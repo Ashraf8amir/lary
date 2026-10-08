@@ -1,7 +1,7 @@
 import { ProductCard } from '@modules/products/interfaces/product-card.interface';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 
-import { LLM_PROVIDER, MAX_TOOL_ROUNDS } from '../chat.constants';
+import { LLM_PROVIDER, MAX_TOOL_ROUNDS } from '../constants/chat.constants';
 import type { ChatGenerationResult, GenerateChatParams } from '../interfaces/chat.interface';
 import type { LlmMessage, LlmProvider } from '../interfaces/llm-provider.interface';
 import { ALL_TOOLS } from '../tools/tool-definitions';

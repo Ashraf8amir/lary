@@ -1,35 +1,32 @@
 import { SALLA_PRODUCT_EXCHANGE } from '@/infrastructure/rabbitmq/rabbitmq.constant';
 import { RabbitMqMessageHandler } from '@/infrastructure/rabbitmq/rabbitmq.message-handler';
-import { ProductsService } from '@/modules/products/products.service';
+import { ProductUpsertPayload } from '@/modules/products/interfaces/product-upsert.interface';
+import { ProductsService } from '@/modules/products/services/products.service';
+import { StorePlatform } from '@/modules/stores/enums/stores.enums';
 import { ErrorCode } from '@common';
 import { Nack, RabbitSubscribe } from '@golevelup/nestjs-rabbitmq';
 import { Injectable, Logger } from '@nestjs/common';
 import { NonRetryableMessagingError } from '@shared/messaging/errors/non-retryable-messaging.error';
 import { RetryableMessagingError } from '@shared/messaging/errors/retryable-messaging.error';
 import type { RabbitMqMessage } from '@shared/messaging/message.contract';
+import { ROUTING_KEYS } from '@shared/messaging/routing-keys';
 import { ClientSession } from 'mongoose';
 import { SallaApiClient } from '../../clients/salla-api.client';
 import { SallaApiException } from '../../exceptions/salla.exception';
 import { SallaProductListItem } from '../../interfaces/salla-product.interface';
-import { SallaProductMapper } from '../../mappers/salla-product.mapper';
-import { SallaIntegrationRepository } from '../../repositories/salla-integration.repository';
-import { SallaTokenService } from '../../services/salla-token.service';
 import {
   ProductSyncDeletedPayload,
   ProductSyncFullPayload,
   ProductSyncIncrementalPayload,
-} from '../publishers/salla-product-sync.publisher';
-
-const PLATFORM = 'salla';
-const ROUTING_KEYS_MAP = {
-  full: 'salla.product.sync.full',
-  incremental: 'salla.product.sync.incremental',
-  deleted: 'salla.product.sync.deleted',
-};
+} from '../../interfaces/salla-sync.interface';
+import { SallaProductMapper } from '../../mappers/salla-product.mapper';
+import { SallaIntegrationRepository } from '../../repositories/salla-integration.repository';
+import { SallaTokenService } from '../../services/salla-token.service';
 
 @Injectable()
 export class SallaProductSyncConsumer {
   private readonly logger = new Logger(SallaProductSyncConsumer.name);
+  private readonly SALLA_PLATFORM = StorePlatform.Salla;
 
   constructor(
     private readonly messageHandler: RabbitMqMessageHandler,
@@ -41,7 +38,7 @@ export class SallaProductSyncConsumer {
 
   @RabbitSubscribe({
     exchange: SALLA_PRODUCT_EXCHANGE,
-    routingKey: ROUTING_KEYS_MAP.full,
+    routingKey: ROUTING_KEYS.ROUTING_KEY_PRODUCT_SYNC_FULL,
     queue: 'salla.product.sync.full.queue',
     createQueueIfNotExists: false,
   })
@@ -55,7 +52,7 @@ export class SallaProductSyncConsumer {
 
   @RabbitSubscribe({
     exchange: SALLA_PRODUCT_EXCHANGE,
-    routingKey: ROUTING_KEYS_MAP.incremental,
+    routingKey: ROUTING_KEYS.ROUTING_KEY_PRODUCT_SYNC_INCREMENTAL,
     queue: 'salla.product.sync.incremental.queue',
     createQueueIfNotExists: false,
   })
@@ -69,7 +66,7 @@ export class SallaProductSyncConsumer {
 
   @RabbitSubscribe({
     exchange: SALLA_PRODUCT_EXCHANGE,
-    routingKey: ROUTING_KEYS_MAP.deleted,
+    routingKey: ROUTING_KEYS.ROUTING_KEY_PRODUCT_SYNC_DELETED,
     queue: 'salla.product.sync.deleted.queue',
     createQueueIfNotExists: false,
   })
@@ -98,10 +95,11 @@ export class SallaProductSyncConsumer {
 
     do {
       const response = await this.fetchListPageOrThrow(accessToken, page);
+      const pagePayloads: ProductUpsertPayload[] = [];
 
       for (const item of response.data) {
         try {
-          await this.syncProductItem(item, storeId);
+          pagePayloads.push(SallaProductMapper.toUpsertPayload(item, storeId));
         } catch (error) {
           failedCount += 1;
           const message = error instanceof Error ? error.message : String(error);
@@ -111,18 +109,24 @@ export class SallaProductSyncConsumer {
         }
       }
 
+      if (pagePayloads.length > 0) {
+        await this.productsService.bulkUpsertFromIntegration(pagePayloads);
+      }
+
       totalPages = response.pagination.totalPages;
       page += 1;
     } while (page <= totalPages);
 
     const hiddenCount = await this.productsService.hideProductsNotSyncedSince(
       storeId,
-      PLATFORM,
+      this.SALLA_PLATFORM,
       syncStartedAt,
     );
 
+    await this.integrationRepository.updateLastSyncAt(storeId);
+
     this.logger.log(
-      `Full sync completed for store ${storeId}: hid ${hiddenCount} stale product(s)`,
+      `Full sync completed for store ${storeId}: hid ${hiddenCount} stale product(s), failed: ${failedCount}`,
     );
   }
 
@@ -146,13 +150,19 @@ export class SallaProductSyncConsumer {
     }
 
     await this.syncProductItem(response.data, storeId, session);
+    await this.integrationRepository.updateLastSyncAt(storeId);
   }
 
   private async processProductDeleted(
     { storeId, sallaProductId }: ProductSyncDeletedPayload,
     session: ClientSession,
   ): Promise<void> {
-    await this.productsService.markDeletedByExternalId(storeId, PLATFORM, sallaProductId, session);
+    await this.productsService.markDeletedByExternalId(
+      storeId,
+      this.SALLA_PLATFORM,
+      sallaProductId,
+      session,
+    );
   }
 
   private async syncProductItem(
@@ -162,28 +172,6 @@ export class SallaProductSyncConsumer {
   ): Promise<void> {
     const productPayload = SallaProductMapper.toUpsertPayload(item, storeId);
     await this.productsService.upsertFromIntegration(productPayload, session);
-
-    if (item.options?.length && item.skus?.length) {
-      const optionValueLookup = SallaProductMapper.buildOptionValueLookup(item.options);
-
-      for (const variant of item.skus) {
-        try {
-          const variantPayload = SallaProductMapper.toVariantUpsertPayload(
-            variant,
-            item.id.toString(),
-            storeId,
-            optionValueLookup,
-            !!item.unlimited_quantity,
-          );
-          await this.productsService.upsertVariant(variantPayload, session);
-        } catch (error) {
-          const message = error instanceof Error ? error.message : String(error);
-          this.logger.warn(
-            `Skipping variant ${variant.id} of product ${item.id} (store ${storeId}): ${message}`,
-          );
-        }
-      }
-    }
   }
 
   private async fetchListPageOrThrow(accessToken: string, page: number) {

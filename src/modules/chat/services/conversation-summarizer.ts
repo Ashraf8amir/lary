@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 
-import { SUMMARY_PROVIDER } from '../chat.constants';
+import { SUMMARY_PROVIDER } from '../constants/chat.constants';
 import type { LlmMessage, SummaryProvider } from '../interfaces/llm-provider.interface';
 import { SUMMARY_SYSTEM_PROMPT } from '../prompts/summary-system.builder';
 

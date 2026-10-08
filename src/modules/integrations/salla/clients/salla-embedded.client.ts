@@ -4,20 +4,21 @@ import { HttpStatus, Inject, Injectable } from '@nestjs/common';
 import type { ConfigType } from '@nestjs/config';
 import axios from 'axios';
 import { SallaApiException } from '../exceptions/salla.exception';
-import {
+import type {
   SallaIntrospectData,
   SallaIntrospectResponse,
-} from '../interfaces/salla-introspect.interface';
+} from '../interfaces/salla-oauth.interface';
 import { BaseHttpClient } from './base-http.client';
 
 @Injectable()
 export class SallaEmbeddedClient extends BaseHttpClient {
-  constructor(@Inject(sallaConfig.KEY) config: ConfigType<typeof sallaConfig>) {
+  constructor(
+    @Inject(sallaConfig.KEY)
+    config: ConfigType<typeof sallaConfig>,
+  ) {
     super(SallaEmbeddedClient.name, {
       baseURL: config.embeddedApiUrl,
-      headers: {
-        's-source': config.appId,
-      },
+      headers: { 's-source': config.appId },
     });
   }
 
