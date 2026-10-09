@@ -27,6 +27,7 @@ type DatabaseConfig = ConfigType<typeof databaseConfig>;
 
         retryWrites: true,
         autoIndex: appCfg.nodeEnv !== Environment.Production,
+        directConnection: true,
       }),
     }),
   ],

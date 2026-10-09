@@ -1,12 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { ClientSession, isValidObjectId, type Model, PipelineStage, Types } from 'mongoose';
-import {
-  DEFAULT_CHAT_SEARCH_LIMIT,
-  PRODUCT_TEXT_SEARCH_INDEX,
-} from '../constants/products.constants';
+import { ClientSession, isValidObjectId, type Model, Types } from 'mongoose';
+// import {
+//   DEFAULT_CHAT_SEARCH_LIMIT,
+//   PRODUCT_TEXT_SEARCH_INDEX,
+// // } from '../constants/products.constants';
 import { ProductStatus } from '../enums/product-status.enum';
-import { SearchFilters } from '../interfaces/product-chat.interface';
+// import { SearchFilters } from '../interfaces/product-chat.interface';
 import { ProductUpsertPayload } from '../interfaces/product-upsert.interface';
 import { Product, ProductDocument } from '../schemas/product.schema';
 
@@ -53,6 +53,19 @@ export class ProductsRepository {
     await this.productModel.bulkWrite(operations, { ordered: false, session });
   }
 
+  async findByIds(storeId: string, ids: string[]): Promise<ProductDocument[]> {
+    if (!isValidObjectId(storeId) || !ids.length) return [];
+
+    const objectIds = ids.map((id) => new Types.ObjectId(id));
+
+    return this.productModel
+      .find({
+        storeId: new Types.ObjectId(storeId),
+        _id: { $in: objectIds },
+      })
+      .exec();
+  }
+
   async findByExternalId(
     storeId: string,
     platform: string,
@@ -69,6 +82,20 @@ export class ProductsRepository {
   async findByStoreId(storeId: string): Promise<ProductDocument[]> {
     if (!isValidObjectId(storeId)) return [];
     return this.productModel.find({ storeId: new Types.ObjectId(storeId) }).exec();
+  }
+
+  async findByStoreAndExternalIds(
+    storeId: string,
+    externalIds: string[],
+  ): Promise<ProductDocument[]> {
+    if (!isValidObjectId(storeId) || externalIds.length === 0) return [];
+
+    return this.productModel
+      .find({
+        storeId: new Types.ObjectId(storeId),
+        externalId: { $in: externalIds },
+      })
+      .exec();
   }
 
   async hideStaleSince(storeId: string, platform: string, cutoff: Date): Promise<number> {
@@ -108,114 +135,114 @@ export class ProductsRepository {
     return result.matchedCount > 0;
   }
 
-  async searchForChat(storeId: string, filters: SearchFilters): Promise<ProductDocument[]> {
-    if (!isValidObjectId(storeId)) return [];
+  // async searchForChat(storeId: string, filters: SearchFilters): Promise<ProductDocument[]> {
+  //   if (!isValidObjectId(storeId)) return [];
 
-    const storeObjectId = new Types.ObjectId(storeId);
-    const trimmedQuery = filters.query?.trim() ?? '';
-    const safeQuery = trimmedQuery.replace(/[.*+?^${}()|[\]\\]/g, ' ').trim();
+  //   const storeObjectId = new Types.ObjectId(storeId);
+  //   const trimmedQuery = filters.query?.trim() ?? '';
+  //   const safeQuery = trimmedQuery.replace(/[.*+?^${}()|[\]\\]/g, ' ').trim();
 
-    if (!safeQuery) {
-      if (filters.category || filters.maxPrice !== undefined) {
-        return this.filterOnlySearch(storeObjectId, filters);
-      }
-      return [];
-    }
+  //   if (!safeQuery) {
+  //     if (filters.category || filters.maxPrice !== undefined) {
+  //       return this.filterOnlySearch(storeObjectId, filters);
+  //     }
+  //     return [];
+  //   }
 
-    const priceMatchStage =
-      filters.maxPrice !== undefined
-        ? {
-            $or: [
-              { hasVariants: false, priceAmount: { $lte: filters.maxPrice } },
-              {
-                hasVariants: true,
-                variants: {
-                  $elemMatch: {
-                    status: { $ne: ProductStatus.Hidden },
-                    priceAmount: { $lte: filters.maxPrice },
-                  },
-                },
-              },
-            ],
-          }
-        : {};
+  //   const priceMatchStage =
+  //     filters.maxPrice !== undefined
+  //       ? {
+  //           $or: [
+  //             { hasVariants: false, priceAmount: { $lte: filters.maxPrice } },
+  //             {
+  //               hasVariants: true,
+  //               variants: {
+  //                 $elemMatch: {
+  //                   status: { $ne: ProductStatus.Hidden },
+  //                   priceAmount: { $lte: filters.maxPrice },
+  //                 },
+  //               },
+  //             },
+  //           ],
+  //         }
+  //       : {};
 
-    try {
-      const pipeline: PipelineStage[] = [
-        {
-          $search: {
-            index: PRODUCT_TEXT_SEARCH_INDEX,
-            compound: {
-              filter: [{ equals: { path: 'storeId', value: storeObjectId } }],
-              mustNot: [{ equals: { path: 'status', value: ProductStatus.Hidden } }],
-              should: [
-                {
-                  text: {
-                    query: safeQuery,
-                    path: 'name',
-                    score: { boost: { value: 6 } },
-                  },
-                },
-                {
-                  text: {
-                    query: safeQuery,
-                    path: { value: 'name', multi: 'standard' },
-                    score: { boost: { value: 5 } },
-                    fuzzy: { maxEdits: 1, prefixLength: 1 },
-                  },
-                },
-                {
-                  text: {
-                    query: safeQuery,
-                    path: ['category', 'categories'],
-                    score: { boost: { value: 3 } },
-                  },
-                },
-                {
-                  text: {
-                    query: safeQuery,
-                    path: [
-                      { value: 'category', multi: 'standard' },
-                      { value: 'categories', multi: 'standard' },
-                    ],
-                    score: { boost: { value: 3 } },
-                  },
-                },
-                {
-                  text: {
-                    query: safeQuery,
-                    path: ['brand', 'tags'],
-                    score: { boost: { value: 4 } },
-                  },
-                },
-                {
-                  text: {
-                    query: safeQuery,
-                    path: 'description',
-                    score: { boost: { value: 1 } },
-                  },
-                },
-              ],
-              minimumShouldMatch: 1,
-            },
-          },
-        },
-        ...(filters.maxPrice !== undefined ? [{ $match: priceMatchStage }] : []),
-        { $addFields: { searchScore: { $meta: 'searchScore' } } },
-        { $sort: { searchScore: -1 } },
-        { $limit: DEFAULT_CHAT_SEARCH_LIMIT },
-      ];
+  //   try {
+  //     const pipeline: PipelineStage[] = [
+  //       {
+  //         $search: {
+  //           index: PRODUCT_TEXT_SEARCH_INDEX,
+  //           compound: {
+  //             filter: [{ equals: { path: 'storeId', value: storeObjectId } }],
+  //             mustNot: [{ equals: { path: 'status', value: ProductStatus.Hidden } }],
+  //             should: [
+  //               {
+  //                 text: {
+  //                   query: safeQuery,
+  //                   path: 'name',
+  //                   score: { boost: { value: 6 } },
+  //                 },
+  //               },
+  //               {
+  //                 text: {
+  //                   query: safeQuery,
+  //                   path: { value: 'name', multi: 'standard' },
+  //                   score: { boost: { value: 5 } },
+  //                   fuzzy: { maxEdits: 1, prefixLength: 1 },
+  //                 },
+  //               },
+  //               {
+  //                 text: {
+  //                   query: safeQuery,
+  //                   path: ['category', 'categories'],
+  //                   score: { boost: { value: 3 } },
+  //                 },
+  //               },
+  //               {
+  //                 text: {
+  //                   query: safeQuery,
+  //                   path: [
+  //                     { value: 'category', multi: 'standard' },
+  //                     { value: 'categories', multi: 'standard' },
+  //                   ],
+  //                   score: { boost: { value: 3 } },
+  //                 },
+  //               },
+  //               {
+  //                 text: {
+  //                   query: safeQuery,
+  //                   path: ['brand', 'tags'],
+  //                   score: { boost: { value: 4 } },
+  //                 },
+  //               },
+  //               {
+  //                 text: {
+  //                   query: safeQuery,
+  //                   path: 'description',
+  //                   score: { boost: { value: 1 } },
+  //                 },
+  //               },
+  //             ],
+  //             minimumShouldMatch: 1,
+  //           },
+  //         },
+  //       },
+  //       ...(filters.maxPrice !== undefined ? [{ $match: priceMatchStage }] : []),
+  //       { $addFields: { searchScore: { $meta: 'searchScore' } } },
+  //       { $sort: { searchScore: -1 } },
+  //       { $limit: DEFAULT_CHAT_SEARCH_LIMIT },
+  //     ];
 
-      const atlasResults = await this.productModel.aggregate<ProductDocument>(pipeline).exec();
-      if (atlasResults.length > 0) {
-        return atlasResults;
-      }
-    } catch {
-      // Fallback to regex search if Atlas Search index is still building or unavailable
-    }
+  //     const atlasResults = await this.productModel.aggregate<ProductDocument>(pipeline).exec();
+  //     if (atlasResults.length > 0) {
+  //       return atlasResults;
+  //     }
+  //   } catch {
+  //     // Fallback to regex search if Atlas Search index is still building or unavailable
+  //   }
 
-    return this.fallbackRegexSearch(storeObjectId, safeQuery, filters);
-  }
+  //   return this.fallbackRegexSearch(storeObjectId, safeQuery, filters);
+  // }
 
   async findByProductOrVariantExternalId(
     storeId: string,
@@ -290,110 +317,110 @@ export class ProductsRepository {
     };
   }
 
-  private async fallbackRegexSearch(
-    storeObjectId: Types.ObjectId,
-    safeQuery: string,
-    filters: SearchFilters,
-  ): Promise<ProductDocument[]> {
-    const tokens = safeQuery
-      .split(/\s+/)
-      .map((t) => t.trim())
-      .filter((t) => t.length >= 2);
+  // private async fallbackRegexSearch(
+  //   storeObjectId: Types.ObjectId,
+  //   safeQuery: string,
+  //   filters: SearchFilters,
+  // ): Promise<ProductDocument[]> {
+  //   const tokens = safeQuery
+  //     .split(/\s+/)
+  //     .map((t) => t.trim())
+  //     .filter((t) => t.length >= 2);
 
-    if (tokens.length === 0) return [];
+  //   if (tokens.length === 0) return [];
 
-    const normalizedPatterns = tokens.map((token) =>
-      token.startsWith('ال') && token.length > 3 ? token.slice(2) : token,
-    );
+  //   const normalizedPatterns = tokens.map((token) =>
+  //     token.startsWith('ال') && token.length > 3 ? token.slice(2) : token,
+  //   );
 
-    const regexPattern = new RegExp(normalizedPatterns.join('|'), 'i');
+  //   const regexPattern = new RegExp(normalizedPatterns.join('|'), 'i');
 
-    const andConditions: Record<string, unknown>[] = [
-      {
-        $or: [
-          { name: regexPattern },
-          { category: regexPattern },
-          { categories: regexPattern },
-          { description: regexPattern },
-          { brand: regexPattern },
-          { tags: regexPattern },
-        ],
-      },
-    ];
+  //   const andConditions: Record<string, unknown>[] = [
+  //     {
+  //       $or: [
+  //         { name: regexPattern },
+  //         { category: regexPattern },
+  //         { categories: regexPattern },
+  //         { description: regexPattern },
+  //         { brand: regexPattern },
+  //         { tags: regexPattern },
+  //       ],
+  //     },
+  //   ];
 
-    if (filters.category) {
-      const cleanCat = filters.category.trim().replace(/^ال/, '');
-      const catRegex = new RegExp(cleanCat, 'i');
-      andConditions.push({
-        $or: [{ category: catRegex }, { categories: catRegex }],
-      });
-    }
+  //   if (filters.category) {
+  //     const cleanCat = filters.category.trim().replace(/^ال/, '');
+  //     const catRegex = new RegExp(cleanCat, 'i');
+  //     andConditions.push({
+  //       $or: [{ category: catRegex }, { categories: catRegex }],
+  //     });
+  //   }
 
-    if (filters.maxPrice !== undefined) {
-      andConditions.push({
-        $or: [
-          { hasVariants: false, priceAmount: { $lte: filters.maxPrice } },
-          {
-            hasVariants: true,
-            variants: {
-              $elemMatch: {
-                status: { $ne: ProductStatus.Hidden },
-                priceAmount: { $lte: filters.maxPrice },
-              },
-            },
-          },
-        ],
-      });
-    }
+  //   if (filters.maxPrice !== undefined) {
+  //     andConditions.push({
+  //       $or: [
+  //         { hasVariants: false, priceAmount: { $lte: filters.maxPrice } },
+  //         {
+  //           hasVariants: true,
+  //           variants: {
+  //             $elemMatch: {
+  //               status: { $ne: ProductStatus.Hidden },
+  //               priceAmount: { $lte: filters.maxPrice },
+  //             },
+  //           },
+  //         },
+  //       ],
+  //     });
+  //   }
 
-    return this.productModel
-      .find({
-        storeId: storeObjectId,
-        status: { $ne: ProductStatus.Hidden },
-        $and: andConditions,
-      })
-      .limit(DEFAULT_CHAT_SEARCH_LIMIT)
-      .exec();
-  }
+  //   return this.productModel
+  //     .find({
+  //       storeId: storeObjectId,
+  //       status: { $ne: ProductStatus.Hidden },
+  //       $and: andConditions,
+  //     })
+  //     .limit(DEFAULT_CHAT_SEARCH_LIMIT)
+  //     .exec();
+  // }
 
-  private async filterOnlySearch(
-    storeObjectId: Types.ObjectId,
-    filters: SearchFilters,
-  ): Promise<ProductDocument[]> {
-    const andConditions: Record<string, unknown>[] = [];
+  // private async filterOnlySearch(
+  //   storeObjectId: Types.ObjectId,
+  //   filters: SearchFilters,
+  // ): Promise<ProductDocument[]> {
+  //   const andConditions: Record<string, unknown>[] = [];
 
-    if (filters.category) {
-      const cleanCat = filters.category.trim().replace(/^ال/, '');
-      const catRegex = new RegExp(cleanCat, 'i');
-      andConditions.push({
-        $or: [{ category: catRegex }, { categories: catRegex }],
-      });
-    }
+  //   if (filters.category) {
+  //     const cleanCat = filters.category.trim().replace(/^ال/, '');
+  //     const catRegex = new RegExp(cleanCat, 'i');
+  //     andConditions.push({
+  //       $or: [{ category: catRegex }, { categories: catRegex }],
+  //     });
+  //   }
 
-    if (filters.maxPrice !== undefined) {
-      andConditions.push({
-        $or: [
-          { hasVariants: false, priceAmount: { $lte: filters.maxPrice } },
-          {
-            hasVariants: true,
-            variants: {
-              $elemMatch: {
-                status: { $ne: ProductStatus.Hidden },
-                priceAmount: { $lte: filters.maxPrice },
-              },
-            },
-          },
-        ],
-      });
-    }
+  //   if (filters.maxPrice !== undefined) {
+  //     andConditions.push({
+  //       $or: [
+  //         { hasVariants: false, priceAmount: { $lte: filters.maxPrice } },
+  //         {
+  //           hasVariants: true,
+  //           variants: {
+  //             $elemMatch: {
+  //               status: { $ne: ProductStatus.Hidden },
+  //               priceAmount: { $lte: filters.maxPrice },
+  //             },
+  //           },
+  //         },
+  //       ],
+  //     });
+  //   }
 
-    return this.productModel
-      .find({
-        storeId: storeObjectId,
-        status: { $ne: ProductStatus.Hidden },
-        ...(andConditions.length > 0 ? { $and: andConditions } : {}),
-      })
-      .limit(DEFAULT_CHAT_SEARCH_LIMIT)
-      .exec();
-  }
+  //   return this.productModel
+  //     .find({
+  //       storeId: storeObjectId,
+  //       status: { $ne: ProductStatus.Hidden },
+  //       ...(andConditions.length > 0 ? { $and: andConditions } : {}),
+  //     })
+  //     .limit(DEFAULT_CHAT_SEARCH_LIMIT)
+  //     .exec();
+  // }
 }

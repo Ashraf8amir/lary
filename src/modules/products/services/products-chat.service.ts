@@ -1,4 +1,6 @@
+import { MeilisearchService } from '@/infrastructure/meilisearch/meilisearch.service';
 import { Injectable } from '@nestjs/common';
+import { DEFAULT_CHAT_SEARCH_LIMIT } from '../constants/products.constants';
 import { ProductStatus } from '../enums/product-status.enum';
 import { ProductCard } from '../interfaces/product-card.interface';
 import {
@@ -12,18 +14,45 @@ import { ProductDocument, ProductVariant } from '../schemas/product.schema';
 
 @Injectable()
 export class ProductsChatService {
-  constructor(private readonly productsRepository: ProductsRepository) {}
+  constructor(
+    private readonly productsRepository: ProductsRepository,
+    private readonly meilisearchService: MeilisearchService,
+  ) {}
 
   async searchForChat(storeId: string, filters: SearchFilters): Promise<ProductCard[]> {
-    const products = await this.productsRepository.searchForChat(storeId, filters);
+    const index = this.meilisearchService.getIndex('products');
 
-    if (products.length === 0) {
+    const filterConditions = [`storeId = "${storeId}"`, `status != "${ProductStatus.Hidden}"`];
+
+    if (filters.category) {
+      filterConditions.push(
+        `(category = "${filters.category}" OR categories = "${filters.category}")`,
+      );
+    }
+
+    if (filters.maxPrice !== undefined) {
+      filterConditions.push(`minPrice <= ${filters.maxPrice}`);
+    }
+
+    const searchResult = await index.search(filters.query || '', {
+      filter: filterConditions,
+      limit: DEFAULT_CHAT_SEARCH_LIMIT,
+    });
+
+    if (searchResult.hits.length === 0) {
       return [];
     }
 
+    const productIds = searchResult.hits.map((hit) => hit.id);
+    const products = await this.productsRepository.findByIds(storeId, productIds);
+
+    const orderedProducts = productIds
+      .map((id) => products.find((p) => p._id.toString() === id))
+      .filter((p) => p !== undefined) as ProductDocument[];
+
     const cards: ProductCard[] = [];
 
-    for (const product of products) {
+    for (const product of orderedProducts) {
       if (!product.hasVariants || !product.variants?.length) {
         cards.push(ProductCardMapper.toStandardProductCard(product));
         continue;
@@ -68,12 +97,21 @@ export class ProductsChatService {
     }
 
     if (input.productName) {
-      const matchedProducts = await this.productsRepository.searchForChat(storeId, {
-        query: input.productName,
+      const index = this.meilisearchService.getIndex('products');
+
+      const searchResult = await index.search(input.productName, {
+        filter: [`storeId = "${storeId}"`, `status != "${ProductStatus.Hidden}"`],
+        limit: 1,
       });
 
-      if (matchedProducts.length > 0) {
-        return matchedProducts[0];
+      if (searchResult.hits.length > 0) {
+        const productId = searchResult.hits[0].id;
+
+        const products = await this.productsRepository.findByIds(storeId, [productId]);
+
+        if (products.length > 0) {
+          return products[0];
+        }
       }
     }
 

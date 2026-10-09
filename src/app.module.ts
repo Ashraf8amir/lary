@@ -28,6 +28,7 @@ import { BusinessException, ErrorCode } from './common';
 import { AppThrottlerGuard } from './common/guards/app-throttler.guard';
 import { CacheModule } from './infrastructure/cache/cache.module';
 import { EncryptionModule } from './infrastructure/encryption/encryption.module';
+import { MeilisearchModule } from './infrastructure/meilisearch/meilisearch.module';
 import { REDIS_CLIENT } from './infrastructure/redis/redis.constants';
 import { RedisModule } from './infrastructure/redis/redis.module';
 import { AssistantSettingsModule } from './modules/assistant-settings/assistant-settings.module';
@@ -46,6 +47,7 @@ import { UsersModule } from './modules/users/users.module';
     RedisModule,
     CacheModule,
     EncryptionModule,
+    MeilisearchModule,
 
     // Third-party & Global Utilities
     ScheduleModule.forRoot(),
