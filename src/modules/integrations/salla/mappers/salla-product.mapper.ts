@@ -1,65 +1,63 @@
 import { ProductStatus } from '@/modules/products/enums/product-status.enum';
-import { ProductUpsertPayload } from '@/modules/products/interfaces/product-upsert-payload.interface';
 import {
+  ProductUpsertPayload,
+  ProductVariantItemPayload,
   ProductVariantOptionValue,
-  ProductVariantUpsertPayload,
-} from '@/modules/products/interfaces/product-variant-upsert-payload.interface';
+} from '@/modules/products/interfaces/product-upsert.interface';
+import { StorePlatform } from '@/modules/stores/enums/stores.enums';
+import { SALLA_DEFAULT_CURRENCY } from '../constants/salla.constants';
+import { SallaProductStatus } from '../enums/salla-product-status.enum';
 import {
+  OptionValueLookup,
+  SallaMoney,
+  SallaProductImage,
   SallaProductListItem,
   SallaProductOption,
   SallaProductVariant,
 } from '../interfaces/salla-product.interface';
 
-const PLATFORM = 'salla';
-
-export type OptionValueLookup = Map<number, { optionName: string; value: string }>;
-
 export class SallaProductMapper {
+  private static readonly SALLA_PLATFORM = StorePlatform.Salla;
+
   static toUpsertPayload(item: SallaProductListItem, storeId: string): ProductUpsertPayload {
     const hasVariants = Array.isArray(item.skus) && item.skus.length > 0;
     const isUnlimitedStock = Boolean(item.unlimited_quantity);
+    const categories = this.extractCategories(item);
+    const optionValueLookup = hasVariants ? this.buildOptionValueLookup(item.options) : new Map();
+
+    const variants = hasVariants
+      ? item.skus!.map((sku) => this.toVariantItemPayload(sku, optionValueLookup, isUnlimitedStock))
+      : [];
 
     return {
       storeId,
       externalId: String(item.id),
-      platform: PLATFORM,
+      platform: this.SALLA_PLATFORM,
       name: item.name?.trim() ?? '',
+      sku: item.sku?.trim() || undefined,
       description: this.cleanDescription(item.description),
-      category: item.categories?.[0]?.name,
+      category: categories[0],
+      categories,
+      brand: this.extractBrandName(item.brand),
+      tags: this.extractTags(item.tags),
       imageUrl: this.resolveImageUrl(item),
       productUrl: item.urls?.customer,
       hasVariants,
       priceAmount: Number(item.price?.amount ?? 0),
-      currency: item.price?.currency ?? 'SAR',
+      regularPriceAmount: this.extractMoneyAmount(item.regular_price),
+      salePriceAmount: this.extractMoneyAmount(item.sale_price),
+      saleEndAt: this.parseSaleEndDate(item.sale_end),
+      currency: item.price?.currency ?? SALLA_DEFAULT_CURRENCY,
       stockQuantity: this.resolveStockQuantity(item, hasVariants),
       isUnlimitedStock,
+      promotionTitle: item.promotion?.title?.trim() || undefined,
+      promotionSubtitle: item.promotion?.sub_title?.trim() || undefined,
+      ratingRate: item.rating?.rate ? Number(item.rating.rate) : undefined,
+      ratingCount: item.rating?.count ? Number(item.rating.count) : undefined,
+      calories: item.calories ? Number(item.calories) : undefined,
+      weightLabel: item.weight ? `${item.weight} ${item.weight_type ?? 'kg'}`.trim() : undefined,
       status: this.mapStatus(item),
-    };
-  }
-
-  static toVariantUpsertPayload(
-    variant: SallaProductVariant,
-    productExternalId: string,
-    storeId: string,
-    optionValueLookup: OptionValueLookup,
-    isParentUnlimited: boolean,
-  ): ProductVariantUpsertPayload {
-    const isUnlimitedStock = Boolean(variant.unlimited_quantity ?? isParentUnlimited);
-    const stockQuantity = Math.max(0, Number(variant.stock_quantity ?? 0));
-
-    return {
-      storeId,
-      productExternalId,
-      platform: PLATFORM,
-      externalId: String(variant.id ?? ''),
-      sku: variant.sku ?? '',
-      priceAmount: Number(variant.price?.amount ?? 0),
-      currency: variant.price?.currency ?? 'SAR',
-      stockQuantity,
-      isUnlimitedStock,
-      status:
-        stockQuantity > 0 || isUnlimitedStock ? ProductStatus.Available : ProductStatus.OutOfStock,
-      optionValues: this.resolveOptionValues(variant.related_option_values, optionValueLookup),
+      variants,
     };
   }
 
@@ -80,6 +78,7 @@ export class SallaProductMapper {
         lookup.set(id, {
           optionName: option.name?.trim() ?? '',
           value: value.name?.trim() ?? '',
+          imageUrl: value.image_url?.trim() || undefined,
         });
       }
     }
@@ -87,15 +86,46 @@ export class SallaProductMapper {
     return lookup;
   }
 
-  private static resolveOptionValues(
+  private static toVariantItemPayload(
+    variant: SallaProductVariant,
+    optionValueLookup: OptionValueLookup,
+    isParentUnlimited: boolean,
+  ): ProductVariantItemPayload {
+    const isUnlimitedStock = Boolean(variant.unlimited_quantity ?? isParentUnlimited);
+    const stockQuantity = Math.max(0, Number(variant.stock_quantity ?? 0));
+    const { optionValues, imageUrl } = this.resolveOptionValuesAndImage(
+      variant.related_option_values,
+      optionValueLookup,
+    );
+
+    return {
+      externalId: String(variant.id ?? ''),
+      sku: variant.sku?.trim() || undefined,
+      barcode: variant.barcode?.trim() || undefined,
+      priceAmount: Number(variant.price?.amount ?? 0),
+      regularPriceAmount: this.extractMoneyAmount(variant.regular_price),
+      salePriceAmount: this.extractMoneyAmount(variant.sale_price),
+      currency: variant.price?.currency ?? SALLA_DEFAULT_CURRENCY,
+      stockQuantity,
+      isUnlimitedStock,
+      imageUrl,
+      weightLabel: variant.weight_label?.trim() || undefined,
+      status:
+        stockQuantity > 0 || isUnlimitedStock ? ProductStatus.Available : ProductStatus.OutOfStock,
+      optionValues,
+    };
+  }
+
+  private static resolveOptionValuesAndImage(
     relatedOptionValueIds: Array<number | string> | undefined | null,
     lookup: OptionValueLookup,
-  ): ProductVariantOptionValue[] {
+  ): { optionValues: ProductVariantOptionValue[]; imageUrl?: string } {
     if (!Array.isArray(relatedOptionValueIds) || relatedOptionValueIds.length === 0) {
-      return [];
+      return { optionValues: [] };
     }
 
-    const resolved: ProductVariantOptionValue[] = [];
+    const optionValues: ProductVariantOptionValue[] = [];
+    let variantImageUrl: string | undefined;
 
     for (const rawId of relatedOptionValueIds) {
       const valueId = Number(rawId);
@@ -104,10 +134,50 @@ export class SallaProductMapper {
       const match = lookup.get(valueId);
       if (!match) continue;
 
-      resolved.push({ ...match });
+      optionValues.push({
+        optionName: match.optionName,
+        value: match.value,
+      });
+
+      if (!variantImageUrl && match.imageUrl) {
+        variantImageUrl = match.imageUrl;
+      }
     }
 
-    return resolved;
+    return { optionValues, imageUrl: variantImageUrl };
+  }
+
+  private static extractCategories(item: SallaProductListItem): string[] {
+    if (!Array.isArray(item.categories)) return [];
+    return item.categories
+      .map((c) => c?.name?.trim())
+      .filter((name): name is string => Boolean(name));
+  }
+
+  private static extractBrandName(brand?: SallaProductListItem['brand']): string | undefined {
+    if (!brand || typeof brand !== 'object' || !('name' in brand)) return undefined;
+    return typeof brand.name === 'string' && brand.name.trim() ? brand.name.trim() : undefined;
+  }
+
+  private static extractTags(tags?: SallaProductListItem['tags']): string[] {
+    if (!Array.isArray(tags)) return [];
+    return tags
+      .map((t) => (typeof t === 'string' ? t.trim() : t?.name?.trim()))
+      .filter((tag): tag is string => Boolean(tag));
+  }
+
+  private static extractMoneyAmount(
+    money?: SallaMoney | Record<string, never>,
+  ): number | undefined {
+    if (!money || typeof money !== 'object' || !('amount' in money)) return undefined;
+    const amount = Number(money.amount);
+    return !Number.isNaN(amount) && amount > 0 ? amount : undefined;
+  }
+
+  private static parseSaleEndDate(saleEnd?: string | Record<string, never>): Date | undefined {
+    if (typeof saleEnd !== 'string' || !saleEnd.trim()) return undefined;
+    const date = new Date(saleEnd);
+    return Number.isNaN(date.getTime()) ? undefined : date;
   }
 
   private static resolveStockQuantity(item: SallaProductListItem, hasVariants: boolean): number {
@@ -123,25 +193,27 @@ export class SallaProductMapper {
   }
 
   private static mapStatus(item: SallaProductListItem): ProductStatus {
-    if (item.status === 'hidden') return ProductStatus.Hidden;
-    if (!item.is_available || item.status === 'out') return ProductStatus.OutOfStock;
+    if (item.status === SallaProductStatus.Hidden) return ProductStatus.Hidden;
+    if (!item.is_available || item.status === SallaProductStatus.Out) {
+      return ProductStatus.OutOfStock;
+    }
     return ProductStatus.Available;
   }
 
   private static resolveImageUrl(item: SallaProductListItem): string | undefined {
-    if (typeof item.main_image === 'string') {
-      return item.main_image;
+    if (typeof item.main_image === 'string' && item.main_image.trim()) {
+      return item.main_image.trim();
     }
     if (item.main_image && typeof item.main_image === 'object' && 'url' in item.main_image) {
-      return (item.main_image as { url: string }).url;
+      return item.main_image.url;
     }
 
     if (Array.isArray(item.images) && item.images.length > 0) {
-      const primaryImage = item.images.find((img: any) =>
-        typeof img === 'object' ? Boolean(img.main) : false,
+      const primaryImage = item.images.find(
+        (img): img is SallaProductImage => typeof img === 'object' && Boolean(img.main),
       );
 
-      if (primaryImage && typeof primaryImage === 'object' && 'url' in primaryImage) {
+      if (primaryImage?.url) {
         return primaryImage.url;
       }
 
@@ -152,7 +224,7 @@ export class SallaProductMapper {
       }
     }
 
-    return undefined;
+    return item.thumbnail?.trim() || undefined;
   }
 
   private static cleanDescription(description?: string): string | undefined {

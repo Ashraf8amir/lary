@@ -1,3 +1,4 @@
+import { Trim } from '@/common/decorators/trim.decorator';
 import { Transform } from 'class-transformer';
 import { IsEmail, IsEnum, IsNotEmpty, IsOptional, IsString, MaxLength } from 'class-validator';
 import { UserStatus } from '../enums/user-status.enum';
@@ -14,16 +15,16 @@ export class CreateUserDto {
   @IsNotEmpty({ message: 'Full name is required' })
   @IsOptional()
   @MaxLength(100)
-  @Transform(({ value }: { value?: string }) => (typeof value === 'string' ? value.trim() : value))
+  @Trim()
   fullName?: string;
 
-  @IsEnum(UserStatus)
+  @IsEnum(UserStatus, { message: 'Invalid user status' })
   @IsOptional()
   status?: UserStatus;
 
   @IsString()
   @IsOptional()
   @MaxLength(20)
-  @Transform(({ value }: { value?: string }) => (typeof value === 'string' ? value.trim() : value))
+  @Trim()
   mobile?: string;
 }

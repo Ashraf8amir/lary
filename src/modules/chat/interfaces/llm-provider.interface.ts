@@ -1,29 +1,10 @@
-export interface LlmToolProperty {
-  type: 'string' | 'number' | 'boolean' | 'array' | 'object';
-  description?: string;
-  enum?: string[];
-  items?: LlmToolProperty;
-  properties?: Record<string, LlmToolProperty>;
-  required?: string[];
-}
-
-export interface LlmToolParameterSchema {
-  type: 'object';
-  properties: Record<string, LlmToolProperty>;
-  description?: string;
-  required?: string[];
-}
-
-export interface LlmTool {
-  name: string;
-  description: string;
-  parameters: LlmToolParameterSchema;
-}
+import { LlmTool } from './tool.interface';
 
 export interface LlmToolCallRequest {
   id: string;
   toolName: string;
   arguments: Record<string, unknown>;
+  thoughtSignature?: string;
 }
 
 export type LlmMessageRole = 'user' | 'assistant' | 'tool' | 'system';
@@ -47,4 +28,8 @@ export interface LlmProvider {
     tools: LlmTool[],
     systemPrompt: string,
   ): Promise<LlmResponse>;
+}
+
+export interface SummaryProvider {
+  generateSummary(prompt: string, systemPrompt: string): Promise<string | null>;
 }

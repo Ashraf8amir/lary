@@ -1,12 +1,32 @@
+import { SallaProductStatus } from '../enums/salla-product-status.enum';
+
+export type OptionValueLookup = Map<
+  number,
+  { optionName: string; value: string; imageUrl?: string }
+>;
+
 export interface SallaMoney {
   amount: number;
   currency: string;
+}
+
+export interface SallaProductPromotion {
+  title?: string;
+  sub_title?: string;
+}
+
+export interface SallaProductRating {
+  total?: number;
+  count?: number;
+  rate?: number;
 }
 
 export interface SallaProductOptionValue {
   id: number;
   name: string;
   option_id: number;
+  image_url?: string;
+  is_out_of_stock?: boolean;
 }
 
 export interface SallaProductOption {
@@ -18,16 +38,29 @@ export interface SallaProductOption {
 export interface SallaProductVariant {
   id: number;
   price: SallaMoney;
+  regular_price?: SallaMoney;
+  sale_price?: SallaMoney | Record<string, never>;
   stock_quantity: number;
   unlimited_quantity?: boolean;
   sku?: string;
   barcode?: string;
+  weight_label?: string;
   related_option_values: number[];
 }
 
 export interface SallaProductCategory {
   id: number;
   name: string;
+}
+
+export interface SallaProductBrand {
+  id?: number;
+  name?: string;
+}
+
+export interface SallaProductTag {
+  id?: number;
+  name?: string;
 }
 
 export interface SallaProductImage {
@@ -49,17 +82,29 @@ export interface SallaMainImage {
 
 export interface SallaProductListItem {
   id: number;
+  sku?: string;
   name: string;
   description?: string;
   price: SallaMoney;
-  quantity: number;
+  regular_price?: SallaMoney;
+  sale_price?: SallaMoney | Record<string, never>;
+  sale_end?: string | Record<string, never>;
+  promotion?: SallaProductPromotion;
+  rating?: SallaProductRating;
+  quantity: number | string;
   unlimited_quantity?: boolean;
-  status: 'sale' | 'out' | 'hidden';
+  status: SallaProductStatus | string;
   is_available: boolean;
-  main_image?: SallaMainImage | null;
-  images?: SallaProductImage[];
+  calories?: number | string;
+  weight?: number;
+  weight_type?: string;
+  thumbnail?: string;
+  main_image?: SallaMainImage | string | null;
+  images?: Array<SallaProductImage | string>;
   urls?: { customer?: string; admin?: string };
   categories?: SallaProductCategory[];
+  brand?: SallaProductBrand | Record<string, never>;
+  tags?: Array<SallaProductTag | string>;
   options?: SallaProductOption[];
   skus?: SallaProductVariant[];
 }

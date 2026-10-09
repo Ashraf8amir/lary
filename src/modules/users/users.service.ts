@@ -28,14 +28,6 @@ export class UsersService {
     return this.usersRepository.existsByEmail(email);
   }
 
-  async softDelete(id: string): Promise<boolean> {
-    return this.usersRepository.softDelete(id);
-  }
-
-  async restore(id: string): Promise<boolean> {
-    return this.usersRepository.restore(id);
-  }
-
   async findOrCreateMerchantUser(data: {
     email: string;
     fullName?: string;

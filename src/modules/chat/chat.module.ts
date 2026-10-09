@@ -1,26 +1,53 @@
 import { Module } from '@nestjs/common';
+
+import { RabbitMqInfrastructureModule } from '@/infrastructure/rabbitmq/rabbitmq.module';
+
 import { ProductsModule } from '../products/products.module';
-import { WidgetSettingsModule } from '../widget-settings/widget-settings.module';
-import { LLM_PROVIDER } from './chat.constants';
+
+import { AssistantSettingsModule } from '../assistant-settings/assistant-settings.module';
 import { ChatController } from './chat.controller';
 import { ChatService } from './chat.service';
+import { LLM_PROVIDER, SUMMARY_PROVIDER } from './constants/chat.constants';
 import { GeminiContentMapper } from './mapper/gemini-content.mapper';
 import { SystemPromptBuilder } from './prompts/system-prompt.builder';
+import { GeminiSummaryProvider } from './providers/gemini-summary.provider';
 import { GeminiProvider } from './providers/gemini.provider';
-import { ConversationSessionService } from './session/conversation-session.service';
-import { ToolExecutorService } from './tools/tool-executor.service';
+import { ChatSummaryConsumer } from './queues/consumers/chat-summary.consumer';
+import { ChatSummaryPublisher } from './queues/publishers/chat-summary.publisher';
+import { ChatGenerationService } from './services/chat-generation.service';
+import { ChatResponseBuilder } from './services/chat-response.builder';
+import { ConversationContext } from './services/conversation-context.service';
+import { ConversationStore } from './services/conversation-store';
+import { ConversationSummarizer } from './services/conversation-summarizer';
+import { ToolExecutor } from './services/tool-executor';
 
 @Module({
-  imports: [WidgetSettingsModule, ProductsModule],
+  imports: [AssistantSettingsModule, ProductsModule, RabbitMqInfrastructureModule],
   controllers: [ChatController],
   providers: [
-    GeminiProvider,
-    GeminiContentMapper,
-    { provide: LLM_PROVIDER, useExisting: GeminiProvider },
     ChatService,
-    ConversationSessionService,
+    ChatGenerationService,
+    ChatResponseBuilder,
+    ConversationStore,
+    ConversationContext,
+    ConversationSummarizer,
+    ToolExecutor,
     SystemPromptBuilder,
-    ToolExecutorService,
+    GeminiContentMapper,
+
+    GeminiProvider,
+    {
+      provide: LLM_PROVIDER,
+      useExisting: GeminiProvider,
+    },
+    GeminiSummaryProvider,
+    {
+      provide: SUMMARY_PROVIDER,
+      useExisting: GeminiSummaryProvider,
+    },
+
+    ChatSummaryPublisher,
+    ChatSummaryConsumer,
   ],
   exports: [LLM_PROVIDER],
 })

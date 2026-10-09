@@ -7,10 +7,8 @@ import { Inject, Injectable, Logger } from '@nestjs/common';
 import type { ConfigType } from '@nestjs/config';
 import { SallaApiClient } from '../clients/salla-api.client';
 import { SallaApiException } from '../exceptions/salla.exception';
-import {
-  SallaIntegrationRepository,
-  SallaTokensUpdatePayload,
-} from '../repositories/salla-integration.repository';
+import { SallaTokensUpdatePayload } from '../interfaces/salla-integration.interface';
+import { SallaIntegrationRepository } from '../repositories/salla-integration.repository';
 import type { SallaIntegrationDocument } from '../schemas/salla-integration.schema';
 
 @Injectable()

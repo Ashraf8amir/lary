@@ -5,14 +5,8 @@ import type { ConfigType } from '@nestjs/config';
 import axios, { AxiosRequestConfig } from 'axios';
 
 import { SallaApiException } from '../exceptions/salla.exception';
+import type { SallaErrorBody } from '../interfaces/salla-api.interface';
 import { BaseHttpClient } from './base-http.client';
-
-interface SallaErrorBody {
-  error?: string;
-  error_description?: string;
-  message?: string;
-  errors?: Record<string, string[]>;
-}
 
 @Injectable()
 export class SallaHttpClient extends BaseHttpClient {
@@ -20,9 +14,7 @@ export class SallaHttpClient extends BaseHttpClient {
     @Inject(sallaConfig.KEY)
     config: ConfigType<typeof sallaConfig>,
   ) {
-    super(SallaHttpClient.name, {
-      baseURL: config.baseUrl,
-    });
+    super(SallaHttpClient.name, { baseURL: config.baseUrl });
   }
 
   async getAuthenticated<T>(

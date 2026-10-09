@@ -42,26 +42,6 @@ export class UsersRepository {
     return (await this.userModel.exists({ email: normalizedEmail })) !== null;
   }
 
-  async softDelete(id: string): Promise<boolean> {
-    if (!isValidObjectId(id)) return false;
-
-    const result = await this.userModel
-      .updateOne({ _id: id }, { $set: { isDeleted: true, deletedAt: new Date() } })
-      .exec();
-
-    return result.modifiedCount > 0;
-  }
-
-  async restore(id: string): Promise<boolean> {
-    if (!isValidObjectId(id)) return false;
-
-    const result = await this.userModel
-      .updateOne({ _id: id, isDeleted: true }, { $set: { isDeleted: false, deletedAt: null } })
-      .exec();
-
-    return result.modifiedCount > 0;
-  }
-
   async findOrCreateMerchantUser(data: {
     email: string;
     fullName?: string;

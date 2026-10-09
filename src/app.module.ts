@@ -1,3 +1,4 @@
+import { ThrottlerStorageRedisService } from '@nest-lab/throttler-storage-redis';
 import {
   HttpStatus,
   MiddlewareConsumer,
@@ -7,46 +8,49 @@ import {
   ValidationPipe,
 } from '@nestjs/common';
 import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
+import { ScheduleModule } from '@nestjs/schedule';
 import { ThrottlerModule } from '@nestjs/throttler';
+import Redis from 'ioredis';
 import { ClsModule } from 'nestjs-cls';
 import { v4 as uuid } from 'uuid';
-
-import { ConfigurationModule } from '@config/configuration.module';
-import { DatabaseModule } from '@infrastructure/database/mongoose/database.module';
-import { LoggerModule } from '@infrastructure/logger/logger.module';
 
 import { AllExceptionsFilter } from '@common/filters/global-exception.filter';
 import { ApiResponseInterceptor } from '@common/interceptors/api-response.interceptor';
 import { TimeoutInterceptor } from '@common/interceptors/timeout.interceptor';
 import { LoggerMiddleware } from '@common/middlewares/logger.middleware';
-
+import { ConfigurationModule } from '@config/configuration.module';
+import { DatabaseModule } from '@infrastructure/database/mongoose/database.module';
+import { LoggerModule } from '@infrastructure/logger/logger.module';
 import { HealthModule } from '@modules/health/health.module';
-import { ThrottlerStorageRedisService } from '@nest-lab/throttler-storage-redis';
-import { ScheduleModule } from '@nestjs/schedule';
-import Redis from 'ioredis';
+
 import { AppService } from './app.service';
 import { BusinessException, ErrorCode } from './common';
 import { AppThrottlerGuard } from './common/guards/app-throttler.guard';
 import { CacheModule } from './infrastructure/cache/cache.module';
 import { EncryptionModule } from './infrastructure/encryption/encryption.module';
+import { MeilisearchModule } from './infrastructure/meilisearch/meilisearch.module';
 import { REDIS_CLIENT } from './infrastructure/redis/redis.constants';
 import { RedisModule } from './infrastructure/redis/redis.module';
+import { AssistantSettingsModule } from './modules/assistant-settings/assistant-settings.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { JwtAccessGuard } from './modules/auth/guards/jwt-auth.guard';
 import { ChatModule } from './modules/chat/chat.module';
 import { SallaModule } from './modules/integrations/salla/salla.module';
 import { UsersModule } from './modules/users/users.module';
-import { WidgetSettingsModule } from './modules/widget-settings/widget-settings.module';
 
 @Module({
   imports: [
+    // Configuration & Core Infrastructure
     ConfigurationModule,
     DatabaseModule,
     LoggerModule,
     RedisModule,
     CacheModule,
     EncryptionModule,
+    MeilisearchModule,
 
+    // Third-party & Global Utilities
+    ScheduleModule.forRoot(),
     ClsModule.forRoot({
       global: true,
       middleware: {
@@ -67,37 +71,39 @@ import { WidgetSettingsModule } from './modules/widget-settings/widget-settings.
         storage: new ThrottlerStorageRedisService(redisClient),
       }),
     }),
-    ScheduleModule.forRoot(),
 
+    // Business Modules
     HealthModule,
     UsersModule,
     AuthModule,
     SallaModule,
-    WidgetSettingsModule,
+    AssistantSettingsModule,
     ChatModule,
   ],
   providers: [
     AppService,
 
+    // Global Guards
     { provide: APP_GUARD, useClass: AppThrottlerGuard },
     { provide: APP_GUARD, useClass: JwtAccessGuard },
 
+    // Global Interceptors
     { provide: APP_INTERCEPTOR, useClass: TimeoutInterceptor },
     { provide: APP_INTERCEPTOR, useClass: ApiResponseInterceptor },
 
+    // Global Filters
     { provide: APP_FILTER, useClass: AllExceptionsFilter },
 
+    // Global Pipes
     {
       provide: APP_PIPE,
       useValue: new ValidationPipe({
         whitelist: true,
         forbidNonWhitelisted: true,
         transform: true,
-
         transformOptions: {
           enableImplicitConversion: true,
         },
-
         exceptionFactory: (validationErrors: ValidationError[] = []) => {
           const errors = validationErrors.flatMap((error) =>
             Object.values(error.constraints ?? {}),

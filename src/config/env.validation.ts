@@ -3,6 +3,7 @@ import { appValidationSchema } from './app.config';
 import { chatValidationSchema } from './chat.config';
 import { databaseValidationSchema } from './database.config';
 import { jwtValidationSchema } from './jwt.config';
+import { meilisearchValidationSchema } from './meilisearch.config';
 import { rabbitmqValidationSchema } from './rabbitmq.config';
 import { redisValidationSchema } from './redis.config';
 import { sallaValidationSchema } from './salla.config';
@@ -15,4 +16,5 @@ export const envValidationSchema = Joi.object({
   ...sallaValidationSchema,
   ...rabbitmqValidationSchema,
   ...chatValidationSchema,
+  ...meilisearchValidationSchema,
 });

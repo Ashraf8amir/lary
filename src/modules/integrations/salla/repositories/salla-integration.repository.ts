@@ -2,31 +2,11 @@ import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { isValidObjectId, type Model, Types } from 'mongoose';
 import { SallaIntegrationStatus } from '../enums/salla-integration-status.enum';
+import {
+  SallaAuthorizePayload,
+  SallaTokensUpdatePayload,
+} from '../interfaces/salla-integration.interface';
 import { SallaIntegration, SallaIntegrationDocument } from '../schemas/salla-integration.schema';
-
-export interface SallaTokensUpdatePayload {
-  accessToken: {
-    encrypted: string;
-    iv: string;
-    authTag: string;
-    expiresAt: Date;
-  };
-  refreshToken: {
-    encrypted: string;
-    iv: string;
-    authTag: string;
-  };
-  lastRefreshedAt: Date;
-}
-
-export interface SallaAuthorizePayload {
-  storeName?: string;
-  merchantEmail: string;
-  merchantMobile?: string;
-  accessToken: SallaTokensUpdatePayload['accessToken'];
-  refreshToken: SallaTokensUpdatePayload['refreshToken'];
-  scopes: string[];
-}
 
 @Injectable()
 export class SallaIntegrationRepository {
@@ -37,50 +17,41 @@ export class SallaIntegrationRepository {
 
   async findById(id: string): Promise<SallaIntegrationDocument | null> {
     if (!isValidObjectId(id)) return null;
-    return this.integrationModel.findOne({ _id: id, isDeleted: { $ne: true } }).exec();
+    return this.integrationModel.findOne({ _id: id }).exec();
   }
 
   async findByStoreId(storeId: string): Promise<SallaIntegrationDocument | null> {
     if (!isValidObjectId(storeId)) return null;
-    return this.integrationModel
-      .findOne({ storeId: new Types.ObjectId(storeId), isDeleted: { $ne: true } })
-      .exec();
+    return this.integrationModel.findOne({ storeId: new Types.ObjectId(storeId) }).exec();
   }
 
-  async findBySallaStoreId(sallaStoreId: string): Promise<SallaIntegrationDocument | null> {
-    return this.integrationModel
-      .findOne({ sallaStoreId: String(sallaStoreId).trim(), isDeleted: { $ne: true } })
-      .exec();
+  async findByMerchantId(merchantId: string): Promise<SallaIntegrationDocument | null> {
+    return this.integrationModel.findOne({ merchantId: String(merchantId).trim() }).exec();
   }
 
   async linkAndActivate(
-    sallaStoreId: string,
+    merchantId: string,
+    storeId: string,
     data: SallaAuthorizePayload,
-    onCreateStoreId: () => Promise<string>,
   ): Promise<SallaIntegrationDocument> {
-    const trimmedSallaStoreId = String(sallaStoreId).trim();
-    const existing = await this.findBySallaStoreId(trimmedSallaStoreId);
-
-    const storeId = existing ? existing.storeId : new Types.ObjectId(await onCreateStoreId());
+    const trimmedMerchantId = String(merchantId).trim();
+    const storeObjectId = new Types.ObjectId(storeId);
 
     return this.integrationModel
       .findOneAndUpdate(
-        { sallaStoreId: trimmedSallaStoreId, isDeleted: { $ne: true } },
+        { merchantId: trimmedMerchantId },
         {
           $set: {
+            storeId: storeObjectId,
             accessToken: data.accessToken,
             refreshToken: data.refreshToken,
             scopes: data.scopes,
-            merchantEmail: data.merchantEmail,
-            merchantMobile: data.merchantMobile,
             status: SallaIntegrationStatus.Connected,
             lastRefreshedAt: new Date(),
           },
           $setOnInsert: {
-            sallaStoreId: trimmedSallaStoreId,
-            storeId,
+            merchantId: trimmedMerchantId,
             connectedAt: new Date(),
-            isDeleted: false,
           },
         },
         { returnDocument: 'after', upsert: true, runValidators: true },
@@ -96,7 +67,7 @@ export class SallaIntegrationRepository {
 
     return this.integrationModel
       .findOneAndUpdate(
-        { _id: id, isDeleted: { $ne: true } },
+        { _id: id },
         {
           $set: {
             accessToken: tokens.accessToken,
@@ -110,12 +81,20 @@ export class SallaIntegrationRepository {
       .exec();
   }
 
+  async updateLastSyncAt(storeId: string, syncedAt: Date = new Date()): Promise<void> {
+    if (!isValidObjectId(storeId)) return;
+
+    await this.integrationModel
+      .updateOne({ storeId: new Types.ObjectId(storeId) }, { $set: { lastSyncAt: syncedAt } })
+      .exec();
+  }
+
   async markDisconnected(id: string): Promise<SallaIntegrationDocument | null> {
     if (!isValidObjectId(id)) return null;
 
     return this.integrationModel
       .findOneAndUpdate(
-        { _id: id, isDeleted: { $ne: true } },
+        { _id: id },
         {
           $set: { status: SallaIntegrationStatus.Disconnected, disconnectedAt: new Date() },
           $unset: { accessToken: 1, refreshToken: 1 },
@@ -129,23 +108,7 @@ export class SallaIntegrationRepository {
     const objectId = typeof id === 'string' ? new Types.ObjectId(id) : id;
 
     const result = await this.integrationModel
-      .updateOne(
-        { _id: objectId, isDeleted: { $ne: true } },
-        { $set: { status: SallaIntegrationStatus.TokenExpired } },
-      )
-      .exec();
-
-    return result.modifiedCount > 0;
-  }
-
-  async softDelete(id: string): Promise<boolean> {
-    if (!isValidObjectId(id)) return false;
-
-    const result = await this.integrationModel
-      .updateOne(
-        { _id: id, isDeleted: { $ne: true } },
-        { $set: { isDeleted: true, deletedAt: new Date() } },
-      )
+      .updateOne({ _id: objectId }, { $set: { status: SallaIntegrationStatus.TokenExpired } })
       .exec();
 
     return result.modifiedCount > 0;
@@ -156,12 +119,11 @@ export class SallaIntegrationRepository {
       .find({
         status: SallaIntegrationStatus.Connected,
         'accessToken.expiresAt': { $lte: thresholdDate },
-        isDeleted: { $ne: true },
       })
       .exec();
   }
 
   async findAllByStatus(status: SallaIntegrationStatus): Promise<SallaIntegrationDocument[]> {
-    return this.integrationModel.find({ status, isDeleted: { $ne: true } }).exec();
+    return this.integrationModel.find({ status }).exec();
   }
 }

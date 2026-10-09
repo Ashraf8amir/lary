@@ -117,4 +117,45 @@ export class CacheService {
       return false;
     }
   }
+
+  async rpushWithTtl<T>(key: string, items: T[], ttlSeconds: number): Promise<number> {
+    if (items.length === 0) {
+      return this.llen(key);
+    }
+
+    const serializedItems = items.map((item) => JSON.stringify(item));
+
+    const pipeline = this.redisService.getClient().pipeline();
+    pipeline.rpush(key, ...serializedItems);
+    pipeline.expire(key, ttlSeconds);
+
+    const results = await pipeline.exec();
+    const newLength = results?.[0]?.[1];
+
+    return typeof newLength === 'number' ? newLength : 0;
+  }
+
+  async lrange<T>(key: string, start = 0, stop = -1): Promise<T[]> {
+    const rawItems = await this.redisService.getClient().lrange(key, start, stop);
+
+    if (!rawItems || rawItems.length === 0) {
+      return [];
+    }
+
+    const parsed: T[] = [];
+    for (const raw of rawItems) {
+      try {
+        const item = JSON.parse(raw) as T;
+        if (item) parsed.push(item);
+      } catch {
+        // Ignore parsing errors and skip invalid items
+      }
+    }
+
+    return parsed;
+  }
+
+  async llen(key: string): Promise<number> {
+    return this.redisService.getClient().llen(key);
+  }
 }

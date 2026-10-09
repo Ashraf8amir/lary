@@ -2,12 +2,8 @@ import chatConfig from '@/config/chat.config';
 import { GoogleGenAI } from '@google/genai';
 import { HttpException, HttpStatus, Inject, Injectable, Logger } from '@nestjs/common';
 import type { ConfigType } from '@nestjs/config';
-import {
-  LlmMessage,
-  LlmProvider,
-  LlmResponse,
-  LlmTool,
-} from '../interfaces/llm-provider.interface';
+import { LlmMessage, LlmProvider, LlmResponse } from '../interfaces/llm-provider.interface';
+import type { LlmTool } from '../interfaces/tool.interface';
 import { GeminiContentMapper } from '../mapper/gemini-content.mapper';
 
 @Injectable()
@@ -30,10 +26,6 @@ export class GeminiProvider implements LlmProvider {
   ): Promise<LlmResponse> {
     try {
       const contents = this.mapper.toGeminiContents(messages);
-
-      console.log('====== [GEMINI CONTENTS PAYLOAD] ======');
-      console.log(JSON.stringify(contents, null, 2));
-      console.log('=======================================');
 
       const response = await this.client.models.generateContent({
         model: this.config.geminiModel,

@@ -3,19 +3,11 @@ import { SALLA_PRODUCT_EXCHANGE } from '@/infrastructure/rabbitmq/rabbitmq.const
 import { Injectable } from '@nestjs/common';
 import { EVENTS } from '@shared/messaging/event.types';
 import { ROUTING_KEYS } from '@shared/messaging/routing-keys';
-export interface ProductSyncFullPayload {
-  storeId: string;
-}
-
-export interface ProductSyncIncrementalPayload {
-  storeId: string;
-  sallaProductId: string;
-}
-
-export interface ProductSyncDeletedPayload {
-  storeId: string;
-  sallaProductId: string;
-}
+import {
+  ProductSyncDeletedPayload,
+  ProductSyncFullPayload,
+  ProductSyncIncrementalPayload,
+} from '../../interfaces/salla-sync.interface';
 
 @Injectable()
 export class SallaProductSyncPublisher {
