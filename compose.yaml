@@ -37,18 +37,22 @@ services:
     restart: unless-stopped
     command: ['--replSet', 'rs0', '--bind_ip_all']
     ports:
-      - '27017:27017'
+      - '127.0.0.1:27017:27017'
     volumes:
       - mongo_data:/data/db
     healthcheck:
-      test: |
-        mongosh --quiet --eval "
-        try {
-          rs.status();
-        } catch (e) {
-          rs.initiate({_id: 'rs0', members: [{_id: 0, host: 'localhost:27017'}]});
-        }
-        db.adminCommand('ping');"
+      test:
+        - CMD
+        - mongosh
+        - --quiet
+        - --eval
+        - |
+          try {
+            rs.status()
+          } catch (e) {
+            rs.initiate({ _id: 'rs0', members: [{ _id: 0, host: 'mongo:27017' }] })
+          }
+          quit(db.hello().isWritablePrimary ? 0 : 1)
       interval: 10s
       timeout: 10s
       retries: 5
@@ -70,7 +74,7 @@ services:
       --save 300 10
       --save 60 10000
     ports:
-      - '6379:6379'
+      - '127.0.0.1:6379:6379'
     volumes:
       - redis_data:/data
     healthcheck:
@@ -91,8 +95,8 @@ services:
     hostname: rabbitmq
     restart: unless-stopped
     ports:
-      - '5672:5672'
-      - '15672:15672'
+      - '127.0.0.1:5672:5672'
+      - '127.0.0.1:15672:15672'
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
     healthcheck:
@@ -101,6 +105,7 @@ services:
       timeout: 5s
       retries: 3
       start_period: 15s
+    logging: *default-logging
     networks:
       - Lary-net
 
@@ -112,7 +117,7 @@ services:
       MEILI_NO_ANALYTICS: 'true'
       MEILI_MASTER_KEY: ${MEILI_MASTER_KEY:?MEILI_MASTER_KEY is required}
     ports:
-      - '7700:7700'
+      - '127.0.0.1:7700:7700'
     volumes:
       - meilisearch_data:/meili_data
     healthcheck:

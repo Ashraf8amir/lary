@@ -19,7 +19,7 @@ COPY . .
 
 USER node
 
-EXPOSE 3067
+EXPOSE 3048
 
 CMD ["npm", "run", "start:dev"]
 
@@ -47,6 +47,6 @@ COPY --chown=node:node --from=builder /usr/src/app/package*.json ./
 COPY --chown=node:node --from=builder /usr/src/app/node_modules ./node_modules
 COPY --chown=node:node --from=builder /usr/src/app/dist ./dist
 
-EXPOSE 3067
+EXPOSE 3048
 
 CMD ["node", "dist/main.js"]
