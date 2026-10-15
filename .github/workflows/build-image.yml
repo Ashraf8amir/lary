@@ -106,6 +106,7 @@ jobs:
           chmod 600 .env
           docker compose pull app
           docker compose up -d --remove-orphans --wait --wait-timeout 180
+          docker compose exec -T app npm run db:indexes:prod
           docker image prune -f
           docker logout ghcr.io
           EOF
