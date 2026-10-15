@@ -5,6 +5,7 @@ import jwtConfig from './jwt.config';
 import meilisearchConfig from './meilisearch.config';
 import redisConfig from './redis.config';
 import sallaConfig from './salla.config';
+import swaggerConfig from './swagger.config';
 
 export const allConfigs = [
   appConfig,
@@ -14,6 +15,7 @@ export const allConfigs = [
   sallaConfig,
   chatConfig,
   meilisearchConfig,
+  swaggerConfig,
 ];
 
 export {
@@ -24,4 +26,5 @@ export {
   meilisearchConfig,
   redisConfig,
   sallaConfig,
+  swaggerConfig,
 };

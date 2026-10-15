@@ -1,10 +1,20 @@
+import { ApiRes } from '@/common/decorators/swagger';
+import { ApiErr } from '@/common/decorators/swagger/api-err.decorator';
 import { ResponseMessage } from '@common';
 import { Public } from '@modules/auth/decorators/public.decorator';
 import { StoresService } from '@modules/stores/stores.service';
 import { Body, Controller, Get, HttpCode, HttpStatus, Param, Patch } from '@nestjs/common';
+import { ApiBearerAuth, ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { AssistantSettingsService } from './assistant-settings.service';
+import {
+  FullAssistantSettingsResponseDto,
+  PublicAssistantSettingsResponseDto,
+} from './dtos/assistant-settings-response.dto';
 import { UpsertAssistantSettingsDto } from './dtos/upsert-assistant-settings.dto';
 
+@ApiTags('Assistant Settings')
+@ApiErr(['INTERNAL_SERVER_ERROR'])
 @Controller('assistant-settings')
 export class AssistantSettingsController {
   constructor(
@@ -13,43 +23,85 @@ export class AssistantSettingsController {
   ) {}
 
   @Public()
+  @Get('public/:merchantId')
+  @HttpCode(HttpStatus.OK)
+  @ResponseMessage('Public assistant settings retrieved')
+  @ApiOperation({
+    summary: 'Get public assistant settings for a specific merchant',
+    description: 'Retrieves the public assistant settings for a given merchant ID.',
+  })
+  @ApiParam({
+    name: 'merchantId',
+    description: 'The ID of the merchant for which to retrieve public assistant settings.',
+    required: true,
+    example: '64f8b9b8b209a8a7c20a1122',
+  })
+  @ApiRes(PublicAssistantSettingsResponseDto, {
+    status: HttpStatus.OK,
+    description: 'Public assistant settings retrieved successfully',
+  })
+  @ApiErr(['BAD_REQUEST', 'NOT_FOUND', 'FORBIDDEN'])
+  async getPublic(@Param('merchantId') merchantId: string) {
+    const storeId = await this.storesService.getActiveStoreIdByMerchantId(merchantId);
+
+    return this.assistantSettingsService.getPublicSettings(storeId);
+  }
+
   @Get(':storeId')
   @HttpCode(HttpStatus.OK)
   @ResponseMessage('Assistant settings retrieved')
-  async getForDashboard(
-    // @CurrentUser('userId') userId: string,
-    @Param('storeId') storeId: string,
-  ) {
-    // await this.storesService.assertOwnership(storeId, userId);
+  @ApiBearerAuth('access-token')
+  @ApiOperation({
+    summary: 'Get assistant settings for a specific store',
+    description: 'Retrieves the assistant settings for a given store ID.',
+  })
+  @ApiParam({
+    name: 'storeId',
+    description: 'The ID of the store for which to retrieve assistant settings.',
+    required: true,
+    example: '64f8b9b8b209a8a7c20a1122',
+  })
+  @ApiRes(FullAssistantSettingsResponseDto, {
+    status: HttpStatus.OK,
+    description: 'Assistant settings retrieved successfully',
+  })
+  @ApiErr(['BAD_REQUEST', 'NOT_FOUND'])
+  async getForDashboard(@CurrentUser('userId') userId: string, @Param('storeId') storeId: string) {
+    await this.storesService.assertOwnership(storeId, userId);
 
     return this.assistantSettingsService.getSettingsForDashboard(storeId);
   }
 
-  @Public()
   @Patch(':storeId')
   @HttpCode(HttpStatus.OK)
   @ResponseMessage('Assistant settings updated')
+  @ApiBearerAuth('access-token')
+  @ApiOperation({
+    summary: 'Update assistant settings for a specific store',
+    description: 'Updates the assistant settings for a given store ID.',
+  })
+  @ApiParam({
+    name: 'storeId',
+    description: 'The ID of the store for which to update assistant settings.',
+    required: true,
+    example: '64f8b9b8b209a8a7c20a1122',
+  })
+  @ApiRes(FullAssistantSettingsResponseDto, {
+    status: HttpStatus.OK,
+    description: 'Assistant settings updated successfully',
+  })
+  @ApiErr(['BAD_REQUEST', 'NOT_FOUND', 'FORBIDDEN'])
   async update(
-    // @CurrentUser('userId') userId: string,
+    @CurrentUser('userId') userId: string,
     @Param('storeId') storeId: string,
     @Body() dto: UpsertAssistantSettingsDto,
   ) {
-    // await this.storesService.assertOwnership(storeId, userId);
+    await this.storesService.assertOwnership(storeId, userId);
 
     const settings = await this.assistantSettingsService.upsert(storeId, dto);
 
     await this.storesService.markOnboardingCompleted(storeId);
 
     return settings;
-  }
-
-  @Public()
-  @Get('public/:merchantId')
-  @HttpCode(HttpStatus.OK)
-  @ResponseMessage('Public assistant settings retrieved')
-  async getPublic(@Param('merchantId') merchantId: string) {
-    const storeId = await this.storesService.getActiveStoreIdByMerchantId(merchantId);
-
-    return this.assistantSettingsService.getPublicSettings(storeId);
   }
 }

@@ -3,11 +3,11 @@ export interface ProductCard {
   variantId: string;
   name: string;
   priceAmount: number;
-  regularPriceAmount?: number; //
+  regularPriceAmount?: number;
   currency: string;
   imageUrl?: string;
   productUrl?: string;
   optionsLabel?: string;
-  promotionTitle?: string; //
+  promotionTitle?: string;
   isAvailable: boolean;
 }

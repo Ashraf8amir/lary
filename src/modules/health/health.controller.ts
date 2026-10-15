@@ -1,4 +1,5 @@
 import { Controller, Get, VERSION_NEUTRAL } from '@nestjs/common';
+import { ApiExcludeController } from '@nestjs/swagger';
 import {
   DiskHealthIndicator,
   HealthCheck,
@@ -10,6 +11,7 @@ import {
 import { Public } from '../auth/decorators/public.decorator';
 import { InfrastructureHealthIndicator } from './infrastructure-health.indicator';
 
+@ApiExcludeController()
 @Controller({
   path: 'health',
   version: VERSION_NEUTRAL,

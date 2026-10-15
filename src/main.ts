@@ -5,8 +5,9 @@ import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
 
-import appConfig from './config/app.config';
 import { AppModule } from './app.module';
+import appConfig from './config/app.config';
+import { setupSwagger } from './infrastructure/swagger';
 
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
@@ -25,13 +26,40 @@ async function bootstrap() {
   const port = appCfg.port || Number(process.env.PORT) || 3000;
 
   app.enableCors({
-    origin: isProduction && allowedOrigins ? allowedOrigins.split(',').map((o: string) => o.trim()) : true,
+    origin:
+      isProduction && allowedOrigins
+        ? allowedOrigins.split(',').map((o: string) => o.trim())
+        : true,
     credentials: true,
   });
 
   app.getHttpAdapter().getInstance().set('trust proxy', 1);
 
-  app.use(helmet({ contentSecurityPolicy: isProduction ? undefined : false }));
+  app.use(
+    helmet({
+      contentSecurityPolicy: isProduction
+        ? {
+            directives: {
+              defaultSrc: ["'self'"],
+              scriptSrc: [
+                "'self'",
+                "'unsafe-inline'",
+                'https://cdn.jsdelivr.net',
+                'https://cdn.scalar.com',
+              ],
+              styleSrc: [
+                "'self'",
+                "'unsafe-inline'",
+                'https://cdn.jsdelivr.net',
+                'https://fonts.googleapis.com',
+              ],
+              fontSrc: ["'self'", 'https://fonts.gstatic.com'],
+              imgSrc: ["'self'", 'data:', 'https:'],
+            },
+          }
+        : false,
+    }),
+  );
   app.use(compression());
   app.use(cookieParser());
 
@@ -43,6 +71,8 @@ async function bootstrap() {
     type: VersioningType.URI,
     defaultVersion: '1',
   });
+
+  setupSwagger(app);
 
   app.enableShutdownHooks();
 
