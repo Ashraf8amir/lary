@@ -5,6 +5,11 @@ on:
     branches: [main]
     tags: ['v*']
   workflow_dispatch:
+    inputs:
+      allow_index_drop:
+        description: 'Allow dropping and recreating a changed index'
+        type: boolean
+        default: false
 
 jobs:
   build-and-push:
@@ -90,23 +95,59 @@ jobs:
       - name: Upload deploy files
         run: |
           ssh server 'mkdir -p ~/apps/lary/nginx'
+          # keep the current .env so we can roll back to the previous image
+          ssh server 'cp ~/apps/lary/.env ~/apps/lary/.env.bak 2>/dev/null || true'
           scp docker-compose.prod.yml server:apps/lary/docker-compose.yml
           scp nginx/http.conf nginx/https.conf server:apps/lary/nginx/
           scp .env.prod server:apps/lary/.env
 
-      - name: Deploy
+      - name: Deploy (with automatic rollback)
         env:
           GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GHCR_USER: ${{ github.actor }}
+          ALLOW_INDEX_DROP: ${{ inputs.allow_index_drop }}
         run: |
           printf '%s' "$GHCR_TOKEN" | ssh server "docker login ghcr.io -u $GHCR_USER --password-stdin"
-          ssh server 'bash -se' <<'EOF'
-          set -e
+          ssh server "ALLOW_INDEX_DROP='$ALLOW_INDEX_DROP' bash -se" <<'EOF'
+          set -Eeo pipefail
           cd ~/apps/lary
           chmod 600 .env
+
+          rollback() {
+            trap - ERR
+            echo "Deploy failed. Rolling back..."
+            if [ -f .env.bak ]; then
+              cp .env.bak .env
+              if docker compose up -d --wait --wait-timeout 120 app < /dev/null; then
+                echo "Rolled back to: $(grep '^APP_IMAGE=' .env)"
+              else
+                echo "ROLLBACK FAILED - manual action needed"
+              fi
+            else
+              echo "No previous .env found - manual action needed"
+            fi
+            docker logout ghcr.io || true
+            exit 1
+          }
+          trap rollback ERR
+
+          echo "Pulling new image..."
           docker compose pull app
-          docker compose up -d --remove-orphans --wait --wait-timeout 180
-          docker compose exec -T app npm run db:indexes:prod
+
+          if [ "$ALLOW_INDEX_DROP" = "true" ]; then
+            echo "Applying indexes (drop and recreate allowed)..."
+            docker compose run --rm --no-deps -T -e INDEX_ALLOW_DROP=true app npm run db:indexes:prod < /dev/null
+          else
+            echo "Applying indexes..."
+            docker compose run --rm --no-deps -T app npm run db:indexes:prod < /dev/null
+          fi
+
+          echo "Starting the new version..."
+          docker compose up -d --remove-orphans --wait --wait-timeout 180 < /dev/null
+
+          trap - ERR
+          rm -f .env.bak
           docker image prune -f
           docker logout ghcr.io
+          echo "Deployment completed: $(grep '^APP_IMAGE=' .env)"
           EOF

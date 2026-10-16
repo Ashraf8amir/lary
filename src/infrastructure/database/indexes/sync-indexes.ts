@@ -25,9 +25,13 @@ async function runIndexBuilder() {
     process.exit(1);
   }
 
+  const allowDrop = process.env.INDEX_ALLOW_DROP === 'true';
+
   const serverSelectionTimeoutMS = Number(process.env.DATABASE_SERVER_SELECTION_TIMEOUT_MS || 5000);
 
-  logger.log('Connecting to MongoDB to build indexes...');
+  logger.log(
+    `Connecting to MongoDB to build indexes... (drop on conflict: ${allowDrop ? 'ENABLED' : 'disabled'})`,
+  );
 
   let exitCode = 0;
 
@@ -59,8 +63,9 @@ async function runIndexBuilder() {
         successCount++;
       } catch (indexError: unknown) {
         const mongoErr = indexError as MongoServerErrorLike;
+        const isConflict = mongoErr?.code === 85 || mongoErr?.code === 86;
 
-        if (mongoErr?.code === 85 || mongoErr?.code === 86) {
+        if (isConflict && allowDrop) {
           const targetIndexName =
             def.options?.name || getDefaultIndexName(def.spec as Record<string, unknown>);
 
@@ -87,6 +92,12 @@ async function runIndexBuilder() {
         failureCount++;
         const errMessage = indexError instanceof Error ? indexError.message : String(indexError);
         logger.error(`Failed on [${def.collection}] with spec ${specString}: ${errMessage}`);
+
+        if (isConflict) {
+          logger.error(
+            `Index conflict on [${def.collection}]. Nothing was dropped. Take a backup, then run manually with INDEX_ALLOW_DROP=true.`,
+          );
+        }
       }
     }
 

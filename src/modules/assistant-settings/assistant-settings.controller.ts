@@ -34,7 +34,7 @@ export class AssistantSettingsController {
     name: 'merchantId',
     description: 'The ID of the merchant for which to retrieve public assistant settings.',
     required: true,
-    example: '64f8b9b8b209a8a7c20a1122',
+    example: '1355819592',
   })
   @ApiRes(PublicAssistantSettingsResponseDto, {
     status: HttpStatus.OK,

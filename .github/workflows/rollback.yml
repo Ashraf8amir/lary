@@ -1,0 +1,85 @@
+name: Rollback
+
+on:
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: 'Image tag to roll back to (example: sha-5e9a4b3)'
+        required: true
+        type: string
+
+jobs:
+  rollback:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    concurrency:
+      group: production-deploy
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      packages: read
+
+    steps:
+      - name: Validate tag
+        env:
+          IMAGE_TAG: ${{ inputs.image_tag }}
+        run: |
+          if ! [[ "$IMAGE_TAG" =~ ^(sha-[0-9a-f]{7}|[0-9]+\.[0-9]+\.[0-9]+)$ ]]; then
+            echo "Invalid tag format: use sha-xxxxxxx or a version like 1.0.0"
+            exit 1
+          fi
+
+      - name: Set up SSH
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          SSH_KNOWN_HOSTS: ${{ secrets.SSH_KNOWN_HOSTS }}
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          printf '%s\n' "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          cat > ~/.ssh/config <<EOF
+          Host server
+            HostName $SSH_HOST
+            User $SSH_USER
+            IdentityFile ~/.ssh/deploy_key
+            StrictHostKeyChecking yes
+          EOF
+
+      - name: Roll back on the server
+        env:
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GHCR_USER: ${{ github.actor }}
+          IMAGE_TAG: ${{ inputs.image_tag }}
+        run: |
+          REPO="${GITHUB_REPOSITORY,,}"
+          printf '%s' "$GHCR_TOKEN" | ssh server "docker login ghcr.io -u $GHCR_USER --password-stdin"
+          ssh server "IMAGE_TAG='$IMAGE_TAG' REPO='$REPO' bash -se" <<'EOF'
+          set -Eeo pipefail
+          cd ~/apps/lary
+
+          cp .env .env.bak
+
+          restore() {
+            trap - ERR
+            echo "Rollback failed. Restoring the previous state..."
+            cp .env.bak .env
+            docker compose up -d --wait --wait-timeout 120 app < /dev/null || echo "RESTORE FAILED - manual action needed"
+            docker logout ghcr.io || true
+            exit 1
+          }
+          trap restore ERR
+
+          sed -i "s|^APP_IMAGE=.*|APP_IMAGE=ghcr.io/${REPO}:${IMAGE_TAG}|" .env
+
+          echo "Pulling ${IMAGE_TAG}..."
+          docker compose pull app
+          docker compose up -d --wait --wait-timeout 180 app < /dev/null
+
+          trap - ERR
+          rm -f .env.bak
+          docker logout ghcr.io
+          echo "Now running: $(grep '^APP_IMAGE=' .env)"
+          EOF
