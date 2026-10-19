@@ -34,7 +34,7 @@ export interface SallaIntegrationStatusResponse {
 
 export interface EmbeddedSessionResult {
   accessToken: string;
-  accessTokenExpiresAt: Date;
+  expiresAt: Date;
   nextStep: EmbeddedNextStep;
 }
 

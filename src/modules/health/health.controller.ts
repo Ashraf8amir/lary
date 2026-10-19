@@ -1,3 +1,4 @@
+import { Public } from '@common/decorators/public.decorator';
 import { Controller, Get, VERSION_NEUTRAL } from '@nestjs/common';
 import { ApiExcludeController } from '@nestjs/swagger';
 import {
@@ -8,7 +9,6 @@ import {
   MemoryHealthIndicator,
   MongooseHealthIndicator,
 } from '@nestjs/terminus';
-import { Public } from '../auth/decorators/public.decorator';
 import { InfrastructureHealthIndicator } from './infrastructure-health.indicator';
 
 @ApiExcludeController()

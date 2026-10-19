@@ -12,6 +12,21 @@ import { SallaIntegrationRepository } from '../repositories/salla-integration.re
 import { SallaIntegrationService } from './salla-integration.service';
 import { SallaSyncService } from './salla-sync.service';
 
+import { resolvePlanSlug, TRIAL_PLAN_SLUG } from '@/modules/subscriptions/enums/plan.enums';
+import { SubscriptionStatus } from '@/modules/subscriptions/enums/subscription-status.enum';
+import { PlansService } from '@/modules/subscriptions/services/plans.service';
+import { SubscriptionsService } from '@/modules/subscriptions/services/subscriptions.service';
+
+const SUBSCRIPTION_EVENT_STATUS: Record<string, SubscriptionStatus> = {
+  'app.trial.started': SubscriptionStatus.TRIALING,
+  'app.subscription.started': SubscriptionStatus.ACTIVE,
+  'app.subscription.renewed': SubscriptionStatus.ACTIVE,
+  'app.trial.expired': SubscriptionStatus.EXPIRED,
+  'app.subscription.expired': SubscriptionStatus.EXPIRED,
+  'app.trial.canceled': SubscriptionStatus.CANCELED,
+  'app.subscription.canceled': SubscriptionStatus.CANCELED,
+};
+
 @Injectable()
 export class SallaWebhookService {
   private readonly logger = new Logger(SallaWebhookService.name);
@@ -21,6 +36,8 @@ export class SallaWebhookService {
     private readonly config: ConfigType<typeof sallaConfig>,
     private readonly sallaIntegrationService: SallaIntegrationService,
     private readonly integrationRepository: SallaIntegrationRepository,
+    private readonly subscriptionsService: SubscriptionsService,
+    private readonly plansService: PlansService,
     private readonly sallaSyncService: SallaSyncService,
   ) {}
 
@@ -57,6 +74,11 @@ export class SallaWebhookService {
 
     if (event === SallaWebhookEvent.ProductDeleted) {
       await this.handleProductDeleted(event, payload.data, merchantId);
+      return;
+    }
+
+    if (this.isSubscriptionEvent(event)) {
+      await this.handleSubscriptionEvent(event, payload.data, merchantId, payload.created_at);
       return;
     }
 
@@ -184,5 +206,78 @@ export class SallaWebhookService {
     }
 
     return String(rawId);
+  }
+
+  private isSubscriptionEvent(event: string): boolean {
+    return Object.hasOwn(SUBSCRIPTION_EVENT_STATUS, event);
+  }
+
+  private parseEventTime(createdAt?: string): Date {
+    if (!createdAt) return new Date();
+
+    const iso = createdAt.includes('T') ? createdAt : `${createdAt.replace(' ', 'T')}Z`;
+    const date = new Date(iso);
+
+    return Number.isNaN(date.getTime()) ? new Date() : date;
+  }
+
+  private async handleSubscriptionEvent(
+    event: string,
+    data: Record<string, any> | undefined,
+    sallaMerchantId: string,
+    createdAt?: string,
+  ): Promise<void> {
+    if (!data) return;
+
+    const integration = await this.integrationRepository.findByMerchantId(sallaMerchantId);
+    if (!integration) {
+      this.logger.warn(`${event} for unlinked merchant ${sallaMerchantId}`);
+      return;
+    }
+
+    const storeId = integration.storeId.toString();
+    const status = SUBSCRIPTION_EVENT_STATUS[event];
+    const eventAt = this.parseEventTime(createdAt);
+
+    if (status === SubscriptionStatus.EXPIRED || status === SubscriptionStatus.CANCELED) {
+      await this.subscriptionsService.updateStatusByStoreId(
+        storeId,
+        status,
+        eventAt,
+        event.startsWith('app.trial.'),
+      );
+      return;
+    }
+
+    const isTrial = event === 'app.trial.started';
+    const startDate = new Date(data.renew_date ?? data.start_date);
+    const endDate = new Date(data.end_date);
+    const planSlug = isTrial ? TRIAL_PLAN_SLUG : resolvePlanSlug(data.plan_name);
+
+    if (!planSlug) {
+      if (event === 'app.subscription.renewed') {
+        await this.subscriptionsService.extendPeriod(storeId, startDate, endDate, eventAt);
+        return;
+      }
+      this.logger.error(`Unknown plan "${data.plan_name}" in ${event} for store ${storeId}`);
+      return;
+    }
+
+    const plan = await this.plansService.getBySlug(planSlug);
+    if (!plan) {
+      this.logger.error(`Plan "${planSlug}" is not seeded`);
+      return;
+    }
+
+    await this.subscriptionsService.upsertFromWebhook({
+      storeId,
+      planId: plan._id.toString(),
+      sallaSubscriptionId: data.subscription_id ? String(data.subscription_id) : undefined,
+      status,
+      startDate,
+      endDate,
+      isTrial,
+      eventAt,
+    });
   }
 }

@@ -35,6 +35,9 @@ export class StoreFaqItemResponseDto {
 }
 
 export class FullAssistantSettingsResponseDto {
+  @ApiProperty({ example: '64f8b9b8b209a8a7c20a1122' })
+  storeId!: string;
+
   @ApiProperty({ example: '#4F46E5' })
   primaryColor!: string;
 
@@ -61,6 +64,12 @@ export class FullAssistantSettingsResponseDto {
 
   @ApiProperty({ type: () => [StoreFaqItemResponseDto] })
   faqs!: StoreFaqItemResponseDto[];
+
+  @ApiPropertyOptional({
+    example: 'تحدث بأسلوب ودود ومهني، وركز على مساعدة العملاء في التسوق.',
+    nullable: true,
+  })
+  customPersona?: string | null;
 }
 
 export class PublicAssistantSettingsResponseDto {
@@ -84,7 +93,4 @@ export class PublicAssistantSettingsResponseDto {
 
   @ApiProperty({ example: true })
   isEnabled!: boolean;
-
-  @ApiProperty({ type: () => SupportContactResponseDto })
-  supportContact!: SupportContactResponseDto;
 }

@@ -56,6 +56,7 @@ export class AssistantSettingsRepository {
       'avatarUrl',
       'isEnabled',
       'faqs',
+      'customPersona',
     ];
 
     for (const key of topLevelKeys) {

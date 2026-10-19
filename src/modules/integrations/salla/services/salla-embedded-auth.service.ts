@@ -1,8 +1,7 @@
+import { JwtAuthService } from '@/infrastructure/jwt-auth/jwt-auth.service';
 import { BusinessException, ErrorCode } from '@common';
-import { AuthService } from '@modules/auth/auth.service';
 import { StoresService } from '@modules/stores/stores.service';
 import { Injectable, Logger } from '@nestjs/common';
-import { Types } from 'mongoose';
 import { SallaEmbeddedClient } from '../clients/salla-embedded.client';
 import { EmbeddedNextStep } from '../enums/salla-embedded.enum';
 import { EmbeddedSessionResult } from '../interfaces/salla-integration.interface';
@@ -16,7 +15,7 @@ export class SallaEmbeddedAuthService {
     private readonly sallaEmbeddedClient: SallaEmbeddedClient,
     private readonly integrationRepository: SallaIntegrationRepository,
     private readonly storesService: StoresService,
-    private readonly authService: AuthService,
+    private readonly jwtAuthService: JwtAuthService,
   ) {}
 
   async createSession(embeddedToken: string): Promise<EmbeddedSessionResult> {
@@ -45,13 +44,13 @@ export class SallaEmbeddedAuthService {
       });
     }
 
-    const { accessToken, accessTokenExpiresAt } = await this.authService.issueStatelessAccessToken(
-      new Types.ObjectId(store.ownerId.toString()),
+    const { accessToken, expiresAt } = await this.jwtAuthService.generateAccessToken(
+      store._id.toString(),
     );
 
     return {
       accessToken,
-      accessTokenExpiresAt,
+      expiresAt,
       nextStep: store.onboardingCompletedAt
         ? EmbeddedNextStep.Dashboard
         : EmbeddedNextStep.CompleteOnboarding,

@@ -89,6 +89,9 @@ export class AssistantSettings {
 
   @Prop({ type: [StoreFaqItemSchema], default: [] })
   faqs!: StoreFaqItem[];
+
+  @Prop({ type: String, required: false, default: null })
+  customPersona?: string | null;
 }
 
 export const AssistantSettingsSchema = SchemaFactory.createForClass(AssistantSettings);

@@ -25,7 +25,7 @@ export class AssistantSettingsService {
 
   async upsert(storeId: string, dto: UpsertAssistantSettingsDto): Promise<FullAssistantSettings> {
     const updatedDoc = await this.assistantSettingsRepository.upsert(storeId, dto);
-    const fullSettings = this.mapToFullSettings(updatedDoc);
+    const fullSettings = this.mapToFullSettings(updatedDoc, storeId);
 
     await this.cacheService.set(
       this.buildCacheKey(storeId),
@@ -51,7 +51,6 @@ export class AssistantSettingsService {
       botName: full.botName,
       avatarUrl: full.avatarUrl,
       isEnabled: full.isEnabled,
-      supportContact: full.supportContact,
     };
   }
 
@@ -62,6 +61,7 @@ export class AssistantSettingsService {
       isEnabled: full.isEnabled,
       botName: full.botName,
       supportContactInfo: this.formatSupportContact(full.supportContact),
+      customPersona: full.customPersona ?? null,
     };
   }
 
@@ -84,7 +84,7 @@ export class AssistantSettingsService {
     }
 
     const dbSettings = await this.assistantSettingsRepository.findByStoreId(storeId);
-    const fullSettings = this.mapToFullSettings(dbSettings);
+    const fullSettings = this.mapToFullSettings(dbSettings, storeId);
 
     await this.cacheService.set(cacheKey, fullSettings, ASSISTANT_SETTINGS_CACHE_TTL_SECONDS);
 
@@ -93,12 +93,14 @@ export class AssistantSettingsService {
 
   private mapToFullSettings(
     settings: AssistantSettings | AssistantSettingsDocument | null,
+    storeId: string,
   ): FullAssistantSettings {
     if (!settings) {
       return structuredClone(DEFAULT_ASSISTANT_SETTINGS);
     }
 
     return {
+      storeId,
       primaryColor: settings.primaryColor ?? DEFAULT_ASSISTANT_SETTINGS.primaryColor,
       position: settings.position ?? DEFAULT_ASSISTANT_SETTINGS.position,
       welcomeMessage: settings.welcomeMessage ?? DEFAULT_ASSISTANT_SETTINGS.welcomeMessage,
@@ -120,6 +122,7 @@ export class AssistantSettingsService {
         question: faq.question,
         answer: faq.answer,
       })),
+      customPersona: settings.customPersona ?? null,
     };
   }
 

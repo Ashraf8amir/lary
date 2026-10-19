@@ -29,6 +29,7 @@ export interface PromptRelevantSettings {
   botName: string;
   supportContactInfo: string | null;
   conversationSummary?: string | null;
+  customPersona?: string | null;
 }
 
 export interface ChatSummarizePayload {

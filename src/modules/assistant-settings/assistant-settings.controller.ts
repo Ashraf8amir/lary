@@ -1,11 +1,11 @@
 import { ApiRes } from '@/common/decorators/swagger';
 import { ApiErr } from '@/common/decorators/swagger/api-err.decorator';
 import { ResponseMessage } from '@common';
-import { Public } from '@modules/auth/decorators/public.decorator';
+import { CurrentUser } from '@common/decorators/current-user.decorator';
+import { Public } from '@common/decorators/public.decorator';
 import { StoresService } from '@modules/stores/stores.service';
 import { Body, Controller, Get, HttpCode, HttpStatus, Param, Patch } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger';
-import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { AssistantSettingsService } from './assistant-settings.service';
 import {
   FullAssistantSettingsResponseDto,
@@ -47,7 +47,7 @@ export class AssistantSettingsController {
     return this.assistantSettingsService.getPublicSettings(storeId);
   }
 
-  @Get(':storeId')
+  @Get('me')
   @HttpCode(HttpStatus.OK)
   @ResponseMessage('Assistant settings retrieved')
   @ApiBearerAuth('access-token')
@@ -55,24 +55,16 @@ export class AssistantSettingsController {
     summary: 'Get assistant settings for a specific store',
     description: 'Retrieves the assistant settings for a given store ID.',
   })
-  @ApiParam({
-    name: 'storeId',
-    description: 'The ID of the store for which to retrieve assistant settings.',
-    required: true,
-    example: '64f8b9b8b209a8a7c20a1122',
-  })
   @ApiRes(FullAssistantSettingsResponseDto, {
     status: HttpStatus.OK,
     description: 'Assistant settings retrieved successfully',
   })
   @ApiErr(['BAD_REQUEST', 'NOT_FOUND'])
-  async getForDashboard(@CurrentUser('userId') userId: string, @Param('storeId') storeId: string) {
-    await this.storesService.assertOwnership(storeId, userId);
-
+  async getForDashboard(@CurrentUser('storeId') storeId: string) {
     return this.assistantSettingsService.getSettingsForDashboard(storeId);
   }
 
-  @Patch(':storeId')
+  @Patch('me')
   @HttpCode(HttpStatus.OK)
   @ResponseMessage('Assistant settings updated')
   @ApiBearerAuth('access-token')
@@ -80,24 +72,12 @@ export class AssistantSettingsController {
     summary: 'Update assistant settings for a specific store',
     description: 'Updates the assistant settings for a given store ID.',
   })
-  @ApiParam({
-    name: 'storeId',
-    description: 'The ID of the store for which to update assistant settings.',
-    required: true,
-    example: '64f8b9b8b209a8a7c20a1122',
-  })
   @ApiRes(FullAssistantSettingsResponseDto, {
     status: HttpStatus.OK,
     description: 'Assistant settings updated successfully',
   })
   @ApiErr(['BAD_REQUEST', 'NOT_FOUND', 'FORBIDDEN'])
-  async update(
-    @CurrentUser('userId') userId: string,
-    @Param('storeId') storeId: string,
-    @Body() dto: UpsertAssistantSettingsDto,
-  ) {
-    await this.storesService.assertOwnership(storeId, userId);
-
+  async update(@CurrentUser('storeId') storeId: string, @Body() dto: UpsertAssistantSettingsDto) {
     const settings = await this.assistantSettingsService.upsert(storeId, dto);
 
     await this.storesService.markOnboardingCompleted(storeId);

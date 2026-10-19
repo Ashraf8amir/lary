@@ -2,11 +2,11 @@ import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 
 import { RabbitMqInfrastructureModule } from '@/infrastructure/rabbitmq/rabbitmq.module';
-import { AuthModule } from '@/modules/auth/auth.module';
 import { ProductsModule } from '@/modules/products/products.module';
 import { StoresModule } from '@modules/stores/stores.module';
 import { UsersModule } from '@modules/users/users.module';
 
+import { SubscriptionsModule } from '@/modules/subscriptions/subscriptions.module';
 import { SallaApiClient } from './clients/salla-api.client';
 import { SallaEmbeddedClient } from './clients/salla-embedded.client';
 import { SallaHttpClient } from './clients/salla-http.client';
@@ -27,9 +27,9 @@ import { SallaWebhookService } from './services/salla-webhook.service';
     MongooseModule.forFeature([{ name: SallaIntegration.name, schema: SallaIntegrationSchema }]),
     UsersModule,
     StoresModule,
-    AuthModule,
     RabbitMqInfrastructureModule,
     ProductsModule,
+    SubscriptionsModule,
   ],
   controllers: [SallaIntegrationController],
   providers: [

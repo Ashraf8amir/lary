@@ -23,4 +23,5 @@ export const DEFAULT_ASSISTANT_SETTINGS: FullAssistantSettings = {
     aboutStore: null,
   },
   faqs: [],
+  customPersona: null,
 };

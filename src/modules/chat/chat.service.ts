@@ -1,6 +1,8 @@
 import { ForbiddenException, Injectable, Logger } from '@nestjs/common';
 
 import { AssistantSettingsService } from '../assistant-settings/assistant-settings.service';
+import { PlanFeature } from '../subscriptions/enums/plan.enums';
+import { SubscriptionsService } from '../subscriptions/services/subscriptions.service';
 import { SLIDING_WINDOW_LIMIT, SUMMARY_MESSAGE_INTERVAL } from './constants/chat.constants';
 import { ChatResponse } from './interfaces/chat.interface';
 import { SystemPromptBuilder } from './prompts/system-prompt.builder';
@@ -22,6 +24,7 @@ export class ChatService {
     private readonly chatGenerationService: ChatGenerationService,
     private readonly chatResponseBuilder: ChatResponseBuilder,
     private readonly chatSummaryPublisher: ChatSummaryPublisher,
+    private readonly subscriptionsService: SubscriptionsService,
   ) {}
 
   async handleMessage(
@@ -45,10 +48,18 @@ export class ChatService {
       SLIDING_WINDOW_LIMIT,
     );
 
-    const systemPrompt = this.systemPromptBuilder.build({
+    const hasCustomPersona = await this.subscriptionsService.hasFeature(
+      storeId,
+      PlanFeature.CUSTOM_PERSONA,
+    );
+
+    const promptSettingsEffective = {
       ...promptSettings,
+      customPersona: hasCustomPersona ? promptSettings.customPersona : null,
       conversationSummary,
-    });
+    };
+
+    const systemPrompt = this.systemPromptBuilder.build(promptSettingsEffective);
 
     const generationResult = await this.chatGenerationService.generate({
       history: safeHistory,
@@ -78,6 +89,10 @@ export class ChatService {
     );
 
     this.triggerSummary(storeId, conversationId, totalMessageCount);
+
+    this.subscriptionsService.trackNewConversation(storeId).catch((err) => {
+      this.logger.error(`Failed to track usage for store ${storeId}`, err);
+    });
 
     return {
       replyText: response.cleanReplyText,

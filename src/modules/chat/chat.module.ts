@@ -5,6 +5,7 @@ import { RabbitMqInfrastructureModule } from '@/infrastructure/rabbitmq/rabbitmq
 import { ProductsModule } from '../products/products.module';
 
 import { AssistantSettingsModule } from '../assistant-settings/assistant-settings.module';
+import { SubscriptionsModule } from '../subscriptions/subscriptions.module';
 import { ChatController } from './chat.controller';
 import { ChatService } from './chat.service';
 import { LLM_PROVIDER, SUMMARY_PROVIDER } from './constants/chat.constants';
@@ -22,7 +23,12 @@ import { ConversationSummarizer } from './services/conversation-summarizer';
 import { ToolExecutor } from './services/tool-executor';
 
 @Module({
-  imports: [AssistantSettingsModule, ProductsModule, RabbitMqInfrastructureModule],
+  imports: [
+    AssistantSettingsModule,
+    ProductsModule,
+    RabbitMqInfrastructureModule,
+    SubscriptionsModule,
+  ],
   controllers: [ChatController],
   providers: [
     ChatService,

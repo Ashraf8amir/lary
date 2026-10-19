@@ -1,8 +1,9 @@
 import { ApiErr } from '@/common/decorators/swagger/api-err.decorator';
 import { ApiRes } from '@/common/decorators/swagger/api-res.decorator';
+import { SubscriptionGuard } from '@/common/guards/subscription.guard';
 import { ResponseMessage } from '@common';
-import { Public } from '@modules/auth/decorators/public.decorator';
-import { Body, Controller, HttpCode, HttpStatus, Post } from '@nestjs/common';
+import { Public } from '@common/decorators/public.decorator';
+import { Body, Controller, HttpCode, HttpStatus, Post, UseGuards } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { ChatService } from './chat.service';
@@ -17,6 +18,7 @@ export class ChatController {
 
   @Public()
   @Post('message')
+  @UseGuards(SubscriptionGuard)
   @Throttle({
     short: { limit: 2, ttl: 5000 },
     long: { limit: 8, ttl: 60000 },

@@ -1,9 +1,8 @@
 import { ApiErr } from '@/common/decorators/swagger/api-err.decorator';
 import { ApiRes } from '@/common/decorators/swagger/api-res.decorator';
 import { ResponseMessage } from '@common';
-import { CurrentUser } from '@modules/auth/decorators/current-user.decorator';
-import { Public } from '@modules/auth/decorators/public.decorator';
-import { StoresService } from '@modules/stores/stores.service';
+import { CurrentUser } from '@common/decorators/current-user.decorator';
+import { Public } from '@common/decorators/public.decorator';
 import {
   Body,
   Controller,
@@ -11,17 +10,10 @@ import {
   Headers,
   HttpCode,
   HttpStatus,
-  Param,
   Post,
   RawBody,
 } from '@nestjs/common';
-import {
-  ApiBearerAuth,
-  ApiExcludeEndpoint,
-  ApiOperation,
-  ApiParam,
-  ApiTags,
-} from '@nestjs/swagger';
+import { ApiBearerAuth, ApiExcludeEndpoint, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { EmbeddedSessionDto } from './dtos/embedded-session.dto';
 import { embeddedSessionResponseDto, StatusResponseDto } from './dtos/salla-response.dto';
@@ -38,7 +30,6 @@ export class SallaIntegrationController {
     private readonly sallaIntegrationService: SallaIntegrationService,
     private readonly sallaWebhookService: SallaWebhookService,
     private readonly sallaEmbeddedAuthService: SallaEmbeddedAuthService,
-    private readonly storesService: StoresService,
   ) {}
 
   @Public()
@@ -55,7 +46,7 @@ export class SallaIntegrationController {
     return { success: true };
   }
 
-  @Get('status/:storeId')
+  @Get('status')
   @HttpCode(HttpStatus.OK)
   @ResponseMessage('Integration status retrieved')
   @ApiBearerAuth('access-token')
@@ -63,19 +54,12 @@ export class SallaIntegrationController {
     summary: 'Get Salla integration status for a specific store',
     description: 'Retrieves the Salla integration status for a given store ID.',
   })
-  @ApiParam({
-    name: 'storeId',
-    description: 'The ID of the store for which to retrieve Salla integration status.',
-    required: true,
-    example: '64f8b9b8b209a8a7c20a1122',
-  })
   @ApiRes(StatusResponseDto, {
     status: HttpStatus.OK,
     description: 'Integration status retrieved successfully',
   })
   @ApiErr(['BAD_REQUEST', 'NOT_FOUND', 'FORBIDDEN'])
-  async status(@CurrentUser('userId') userId: string, @Param('storeId') storeId: string) {
-    await this.storesService.assertOwnership(storeId, userId);
+  async status(@CurrentUser('storeId') storeId: string) {
     return this.sallaIntegrationService.getIntegrationStatus(storeId);
   }
 

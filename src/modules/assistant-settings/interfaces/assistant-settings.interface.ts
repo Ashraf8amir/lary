@@ -18,29 +18,28 @@ export interface StoreFaqData {
   answer: string;
 }
 
-export interface BaseAssistantSettings {
+export interface PublicAssistantSettings {
+  storeId?: string;
   primaryColor: string;
   position: WidgetPosition;
   welcomeMessage: string;
   botName: string;
   avatarUrl: string | null;
   isEnabled: boolean;
+}
+
+export interface FullAssistantSettings extends PublicAssistantSettings {
   supportContact: SupportContactData;
-}
-
-export interface PublicAssistantSettings extends BaseAssistantSettings {
-  storeId: string;
-}
-
-export interface FullAssistantSettings extends BaseAssistantSettings {
   storePolicies: StorePoliciesData;
   faqs: StoreFaqData[];
+  customPersona: string | null;
 }
 
 export interface SystemPromptAssistantSettings {
   isEnabled: boolean;
   botName: string;
   supportContactInfo: string | null;
+  customPersona: string | null;
 }
 
 export interface StorePoliciesForChat {

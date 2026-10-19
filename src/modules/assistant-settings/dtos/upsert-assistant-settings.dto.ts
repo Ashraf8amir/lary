@@ -184,4 +184,15 @@ export class UpsertAssistantSettingsDto {
   @ValidateNested({ each: true })
   @Type(() => StoreFaqItemDto)
   faqs?: StoreFaqItemDto[];
+
+  @ApiPropertyOptional({
+    description: 'Custom persona or tone for the assistant bot',
+    example: 'Friendly and professional',
+  })
+  @IsOptional()
+  @ValidateIf((_, value) => value !== null)
+  @Transform(trimTransform)
+  @IsString()
+  @MaxLength(300, { message: 'customPersona must not exceed 300 characters' })
+  customPersona?: string | null;
 }
