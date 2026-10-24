@@ -22,6 +22,7 @@ export class ProductCardMapper {
   static toStandardProductCard(product: ProductDocument): ProductCard {
     return {
       type: 'PRODUCT',
+      originalExternalId: product.externalId,
       variantId: product.externalId,
       name: product.name,
       priceAmount: product.priceAmount,
@@ -47,6 +48,7 @@ export class ProductCardMapper {
 
     return {
       type: 'PRODUCT',
+      originalExternalId: product.externalId,
       variantId: variant.externalId,
       name: product.name,
       priceAmount: variant.priceAmount,

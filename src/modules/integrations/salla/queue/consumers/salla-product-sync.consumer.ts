@@ -3,6 +3,7 @@ import { RabbitMqMessageHandler } from '@/infrastructure/rabbitmq/rabbitmq.messa
 import { ProductUpsertPayload } from '@/modules/products/interfaces/product-upsert.interface';
 import { ProductsService } from '@/modules/products/services/products.service';
 import { StorePlatform } from '@/modules/stores/enums/stores.enums';
+import { SubscriptionsService } from '@/modules/subscriptions/services/subscriptions.service';
 import { ErrorCode } from '@common';
 import { Nack, RabbitSubscribe } from '@golevelup/nestjs-rabbitmq';
 import { Injectable, Logger } from '@nestjs/common';
@@ -34,6 +35,7 @@ export class SallaProductSyncConsumer {
     private readonly tokenService: SallaTokenService,
     private readonly apiClient: SallaApiClient,
     private readonly productsService: ProductsService,
+    private readonly subscriptionsService: SubscriptionsService,
   ) {}
 
   @RabbitSubscribe({
@@ -89,17 +91,37 @@ export class SallaProductSyncConsumer {
 
     const accessToken = await this.getAccessTokenOrThrow(integration);
 
+    const limit = await this.subscriptionsService.getProductsLimit(storeId);
+    let currentUsage = await this.productsService.getStoreProductsUsageCount(storeId);
+
     let page = 1;
     let totalPages = 1;
     let failedCount = 0;
+    let limitReached = false;
 
     do {
       const response = await this.fetchListPageOrThrow(accessToken, page);
       const pagePayloads: ProductUpsertPayload[] = [];
 
       for (const item of response.data) {
+        if (limit !== -1 && currentUsage >= limit) {
+          limitReached = true;
+          break;
+        }
+
         try {
-          pagePayloads.push(SallaProductMapper.toUpsertPayload(item, storeId));
+          const payload = SallaProductMapper.toUpsertPayload(item, storeId);
+
+          const variantsCount =
+            payload.hasVariants && payload.variants?.length ? payload.variants.length : 1;
+
+          if (limit !== -1 && currentUsage + variantsCount > limit) {
+            limitReached = true;
+            break;
+          }
+
+          pagePayloads.push(payload);
+          currentUsage += variantsCount;
         } catch (error) {
           failedCount += 1;
           const message = error instanceof Error ? error.message : String(error);
@@ -111,6 +133,13 @@ export class SallaProductSyncConsumer {
 
       if (pagePayloads.length > 0) {
         await this.productsService.bulkUpsertFromIntegration(pagePayloads);
+      }
+
+      if (limitReached) {
+        this.logger.warn(
+          `Store ${storeId} reached products limit (${limit}). Full sync aborted gracefully.`,
+        );
+        break;
       }
 
       totalPages = response.pagination.totalPages;
@@ -126,7 +155,7 @@ export class SallaProductSyncConsumer {
     await this.integrationRepository.updateLastSyncAt(storeId);
 
     this.logger.log(
-      `Full sync completed for store ${storeId}: hid ${hiddenCount} stale product(s), failed: ${failedCount}`,
+      `Full sync completed for store ${storeId}: hid ${hiddenCount} stale product(s), failed: ${failedCount}, total usage stored: ${currentUsage}`,
     );
   }
 
@@ -193,6 +222,13 @@ export class SallaProductSyncConsumer {
   }
 
   private classifySallaError(error: unknown): NonRetryableMessagingError | RetryableMessagingError {
+    const message = error instanceof Error ? error.message : String(error);
+
+    if (message === 'PRODUCTS_LIMIT_EXCEEDED') {
+      this.logger.warn('Product sync ignored due to subscription limits.');
+      return new NonRetryableMessagingError('Store exceeded products limit. Sync ignored.');
+    }
+
     if (error instanceof SallaApiException) {
       if (
         error.errorCode === ErrorCode.SALLA_AUTHORIZATION_FAILED ||
@@ -203,7 +239,6 @@ export class SallaProductSyncConsumer {
       return new RetryableMessagingError(error.message);
     }
 
-    const message = error instanceof Error ? error.message : String(error);
     return new RetryableMessagingError(message);
   }
 }

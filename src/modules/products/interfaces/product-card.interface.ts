@@ -1,5 +1,6 @@
 export interface ProductCard {
   type: 'PRODUCT';
+  originalExternalId?: string;
   variantId: string;
   name: string;
   priceAmount: number;

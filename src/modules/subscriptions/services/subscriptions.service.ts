@@ -109,10 +109,6 @@ export class SubscriptionsService {
     return plan?.features.includes(feature) ?? false;
   }
 
-  private hasAccess(sub: SubscriptionDocument): boolean {
-    return this.ACCESS_STATUSES.includes(sub.status) && sub.endDate > new Date();
-  }
-
   async trackNewConversation(storeId: string, tokensUsed = 0): Promise<void> {
     const sub = await this.subscriptionsRepository.findByStoreId(storeId);
     if (!sub) return;
@@ -124,5 +120,20 @@ export class SubscriptionsService {
       sub.endDate,
       tokensUsed,
     );
+  }
+
+  async getProductsLimit(storeId: string): Promise<number> {
+    const subscription = await this.subscriptionsRepository.findByStoreId(storeId);
+
+    if (!subscription || subscription.status !== SubscriptionStatus.ACTIVE) {
+      return 0;
+    }
+
+    const plan = await this.plansService.getById(subscription.planId.toString());
+    return plan?.limits?.productsLimit ?? 0;
+  }
+
+  private hasAccess(sub: SubscriptionDocument): boolean {
+    return this.ACCESS_STATUSES.includes(sub.status) && sub.endDate > new Date();
   }
 }

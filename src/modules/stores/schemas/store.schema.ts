@@ -97,13 +97,6 @@ export class Store {
     type: String,
     required: false,
     trim: true,
-  })
-  plan?: string;
-
-  @Prop({
-    type: String,
-    required: false,
-    trim: true,
     lowercase: true,
   })
   email?: string;

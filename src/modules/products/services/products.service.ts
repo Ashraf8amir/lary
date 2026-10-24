@@ -1,4 +1,5 @@
 import { MeilisearchService } from '@/infrastructure/meilisearch/meilisearch.service';
+import { SubscriptionsService } from '@/modules/subscriptions/services/subscriptions.service';
 import { Injectable, Logger } from '@nestjs/common';
 import { ClientSession } from 'mongoose';
 import { ProductStatus } from '../enums/product-status.enum';
@@ -21,14 +22,42 @@ export class ProductsService {
     private readonly productsRepository: ProductsRepository,
     private readonly productsChatService: ProductsChatService,
     private readonly meilisearchService: MeilisearchService,
+    private readonly subscriptionsService: SubscriptionsService,
   ) {}
 
   async upsertFromIntegration(
     payload: ProductUpsertPayload,
     session?: ClientSession,
-  ): Promise<ProductDocument> {
-    const product = await this.productsRepository.upsert(payload, session);
+  ): Promise<ProductDocument | null> {
+    const existingProduct = await this.productsRepository.findByExternalId(
+      payload.storeId,
+      payload.platform,
+      payload.externalId,
+      session,
+    );
 
+    const isNewProduct = !existingProduct;
+
+    if (isNewProduct) {
+      const limit = await this.subscriptionsService.getProductsLimit(payload.storeId);
+
+      if (limit !== -1) {
+        const currentUsage = await this.getStoreProductsUsageCount(payload.storeId);
+
+        const incomingVariantsCount =
+          payload.hasVariants && payload.variants?.length ? payload.variants.length : 1;
+
+        if (currentUsage + incomingVariantsCount > limit) {
+          this.logger.warn(
+            `Store ${payload.storeId} exceeded products limit (${limit}). Rejected product ${payload.externalId}.`,
+          );
+
+          throw new Error('PRODUCTS_LIMIT_EXCEEDED');
+        }
+      }
+    }
+
+    const product = await this.productsRepository.upsert(payload, session);
     await this.syncProductToMeilisearch(product);
 
     return product;
@@ -139,6 +168,14 @@ export class ProductsService {
 
   async getStoreCategoriesForChat(storeId: string): Promise<string[]> {
     return this.productsChatService.getStoreCategoriesForChat(storeId);
+  }
+
+  async getStoreProductsUsageCount(storeId: string): Promise<number> {
+    const totalUsage = await this.productsRepository.countStoreProductsAndVariants(storeId);
+
+    this.logger.debug(`Store ${storeId} is using ${totalUsage} product/variant slots.`);
+
+    return totalUsage;
   }
 
   private async syncProductToMeilisearch(product: ProductDocument) {

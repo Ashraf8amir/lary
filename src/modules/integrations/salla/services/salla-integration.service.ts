@@ -10,7 +10,6 @@ import { SallaStoreInfo, SallaUserInfo } from '../interfaces/salla-api.interface
 import { SallaIntegrationStatusResponse } from '../interfaces/salla-integration.interface';
 import { SallaStoreMapper } from '../mappers/salla-store.mapper';
 import { SallaIntegrationRepository } from '../repositories/salla-integration.repository';
-import { SallaSyncService } from './salla-sync.service';
 import { SallaTokenService } from './salla-token.service';
 
 @Injectable()
@@ -23,7 +22,6 @@ export class SallaIntegrationService {
     private readonly storesService: StoresService,
     private readonly usersService: UsersService,
     private readonly sallaApiClient: SallaApiClient,
-    private readonly sallaSyncService: SallaSyncService,
   ) {}
 
   async getIntegrationStatus(storeId: string): Promise<SallaIntegrationStatusResponse> {
@@ -107,8 +105,6 @@ export class SallaIntegrationService {
         scopes: authorizeData.scope ? authorizeData.scope.split(' ') : [],
       },
     );
-
-    await this.sallaSyncService.triggerFullSync(integration.storeId.toString());
 
     this.logger.log(
       `Salla integration activated for store ${integration.storeId.toString()} linked to user ${user.email} (Merchant: ${sallaMerchantId})`,

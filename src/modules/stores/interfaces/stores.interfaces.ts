@@ -20,7 +20,6 @@ export interface CreateStoreInput {
   platform: StorePlatform;
   merchantId?: string;
   status?: StoreStatus;
-  plan?: string;
   email?: string;
   description?: string;
   currency?: string;
@@ -32,7 +31,6 @@ export interface CreateStoreInput {
 export interface UpdateStoreInput {
   name?: string;
   status?: StoreStatus;
-  plan?: string;
   email?: string;
   description?: string;
   currency?: string;

@@ -135,6 +135,46 @@ export class ProductsRepository {
     return result.matchedCount > 0;
   }
 
+  async countStoreProductsAndVariants(storeId: string): Promise<number> {
+    if (!isValidObjectId(storeId)) return 0;
+
+    const result = await this.productModel
+      .aggregate([
+        {
+          $match: {
+            storeId: new Types.ObjectId(storeId),
+            status: { $ne: ProductStatus.Hidden },
+          },
+        },
+        {
+          $project: {
+            itemCount: {
+              $cond: {
+                if: {
+                  $and: [
+                    { $eq: ['$hasVariants', true] },
+                    { $isArray: '$variants' },
+                    { $gt: [{ $size: '$variants' }, 0] },
+                  ],
+                },
+                then: { $size: '$variants' },
+                else: 1,
+              },
+            },
+          },
+        },
+        {
+          $group: {
+            _id: null,
+            totalVariants: { $sum: '$itemCount' },
+          },
+        },
+      ])
+      .exec();
+
+    return result.length > 0 ? result[0].totalVariants : 0;
+  }
+
   async findByProductOrVariantExternalId(
     storeId: string,
     targetExternalId: string,

@@ -4,7 +4,10 @@ class ProductCardResponseDto {
   @ApiProperty({ example: 'PRODUCT' })
   type!: 'PRODUCT';
 
-  @ApiProperty({ example: '1762302633' })
+  @ApiProperty({ description: 'External ID of the parent product (required when adding to cart)', example: '1762302633' })
+  originalExternalId!: string;
+
+  @ApiProperty({ example: '1762580101' })
   variantId!: string;
 
   @ApiProperty({ example: 'قميص جينز أوفرسايز أزرق فاتح' })

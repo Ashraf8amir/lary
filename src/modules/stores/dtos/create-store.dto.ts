@@ -98,11 +98,6 @@ export class CreateStoreDto {
 
   @IsOptional()
   @Trim()
-  @IsString()
-  plan?: string;
-
-  @IsOptional()
-  @Trim()
   @IsEmail({}, { message: 'Store email must be a valid email' })
   email?: string;
 

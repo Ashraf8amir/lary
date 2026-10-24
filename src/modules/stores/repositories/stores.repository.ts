@@ -39,7 +39,6 @@ export class StoresRepository {
             name: data.name,
             ownerId: new Types.ObjectId(data.ownerId),
             status: data.status ?? StoreStatus.Active,
-            ...(data.plan !== undefined && { plan: data.plan }),
             ...(data.email !== undefined && { email: data.email }),
             ...(data.description !== undefined && { description: data.description }),
             ...(data.currency !== undefined && { currency: data.currency }),

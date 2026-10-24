@@ -29,7 +29,6 @@ export class SallaStoreMapper {
       name: validName,
       platform: StorePlatform.Salla,
       status: this.mapStoreStatus(storeInfo.status),
-      plan: storeInfo.plan?.trim() || undefined,
       email: storeInfo.email?.trim() || undefined,
       description: this.cleanDescription(storeInfo.description),
       currency: storeInfo.currency?.trim().toUpperCase() || SALLA_DEFAULT_CURRENCY,

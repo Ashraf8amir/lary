@@ -279,5 +279,11 @@ export class SallaWebhookService {
       isTrial,
       eventAt,
     });
+
+    if (event === 'app.subscription.started' || event === 'app.trial.started') {
+      this.logger.log(`Subscription started for store ${storeId}. Triggering Initial Full Sync...`);
+
+      await this.sallaSyncService.triggerFullSync(storeId);
+    }
   }
 }

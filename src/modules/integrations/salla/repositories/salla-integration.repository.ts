@@ -48,6 +48,8 @@ export class SallaIntegrationRepository {
             scopes: data.scopes,
             status: SallaIntegrationStatus.Connected,
             lastRefreshedAt: new Date(),
+            disconnectedAt: undefined,
+            connectedAt: new Date(),
           },
           $setOnInsert: {
             merchantId: trimmedMerchantId,
