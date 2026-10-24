@@ -4,9 +4,9 @@ export const SUMMARY_PROVIDER = Symbol('SUMMARY_PROVIDER');
 
 export const MAX_TOOL_ROUNDS = 5;
 
-export const SLIDING_WINDOW_LIMIT = 10;
-
 export const SUMMARY_MESSAGE_INTERVAL = 15;
+
+export const HISTORY_TAIL_CEILING = SUMMARY_MESSAGE_INTERVAL * 2;
 
 export const CHAT_CACHE_KEYS = {
   SESSION: 'chat:session:',

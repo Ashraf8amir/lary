@@ -127,6 +127,7 @@ export class GeminiContentMapper {
     return {
       promptTokens,
       candidateTokens,
+      cachedTokens: usage.cachedContentTokenCount ?? 0,
       totalTokens: usage.totalTokenCount ?? promptTokens + candidateTokens,
     };
   }

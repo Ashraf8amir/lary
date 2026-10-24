@@ -20,6 +20,7 @@ export interface LlmMessage {
 export interface LlmTokenUsage {
   promptTokens: number;
   candidateTokens: number;
+  cachedTokens: number;
   totalTokens: number;
 }
 

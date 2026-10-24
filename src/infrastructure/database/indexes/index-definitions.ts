@@ -155,6 +155,10 @@ export const INDEX_DEFINITIONS: IndexDefinition[] = [
   // ==========================================
   {
     collection: 'chat_conversations',
+    spec: { storeId: 1 },
+  },
+  {
+    collection: 'chat_conversations',
     spec: { storeId: 1, conversationId: 1 },
     options: { unique: true },
   },
@@ -169,6 +173,10 @@ export const INDEX_DEFINITIONS: IndexDefinition[] = [
   },
   {
     collection: 'chat_messages',
+    spec: { storeId: 1 },
+  },
+  {
+    collection: 'chat_messages',
     spec: { storeId: 1, conversationId: 1, sequence: 1 },
   },
   {
@@ -179,5 +187,33 @@ export const INDEX_DEFINITIONS: IndexDefinition[] = [
     collection: 'chat_messages',
     spec: { expiresAt: 1 },
     options: { expireAfterSeconds: 0 },
+  },
+
+  // ==========================================
+  // 9. Subscriptions
+  // ==========================================
+  {
+    collection: 'plans',
+    spec: { slug: 1 },
+    options: { unique: true },
+  },
+  {
+    collection: 'subscriptions',
+    spec: { storeId: 1 },
+    options: { unique: true },
+  },
+  {
+    collection: 'subscriptions',
+    spec: { sallaSubscriptionId: 1 },
+    options: { unique: true, sparse: true },
+  },
+  {
+    collection: 'usages',
+    spec: { storeId: 1 },
+  },
+  {
+    collection: 'usages',
+    spec: { storeId: 1, subscriptionId: 1, periodStart: 1, periodEnd: 1 },
+    options: { unique: true },
   },
 ];

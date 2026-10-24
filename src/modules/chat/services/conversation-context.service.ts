@@ -4,36 +4,15 @@ import type { LlmMessage } from '../interfaces/llm-provider.interface';
 
 @Injectable()
 export class ConversationContext {
-  getRecentHistory(messages: LlmMessage[], humanTurnLimit = 10): LlmMessage[] {
+  getPromptHistory(messages: LlmMessage[], maxMessages: number): LlmMessage[] {
     if (!messages.length) {
       return [];
     }
 
-    const startIndex = this.findContextStartIndex(messages, humanTurnLimit);
+    const bounded =
+      messages.length > maxMessages ? messages.slice(messages.length - maxMessages) : messages;
 
-    const context = messages.slice(startIndex);
-
-    return this.removeIncompleteToolContext(context);
-  }
-
-  private findContextStartIndex(messages: LlmMessage[], humanTurnLimit: number): number {
-    let humanTurnCount = 0;
-
-    for (let index = messages.length - 1; index >= 0; index--) {
-      if (this.isHumanTurn(messages[index])) {
-        humanTurnCount++;
-      }
-
-      if (humanTurnCount >= humanTurnLimit) {
-        return index;
-      }
-    }
-
-    return 0;
-  }
-
-  private isHumanTurn(message: LlmMessage): boolean {
-    return message.role === 'user' || (message.role === 'assistant' && !message.toolCalls?.length);
+    return this.removeIncompleteToolContext(bounded);
   }
 
   private removeIncompleteToolContext(messages: LlmMessage[]): LlmMessage[] {

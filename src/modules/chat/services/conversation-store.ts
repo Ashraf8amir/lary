@@ -3,7 +3,7 @@ import { CacheService } from '@infrastructure/cache/cache.service';
 import { Inject, Injectable } from '@nestjs/common';
 import type { ConfigType } from '@nestjs/config';
 
-import { CHAT_CACHE_KEYS, SLIDING_WINDOW_LIMIT } from '../constants/chat.constants';
+import { CHAT_CACHE_KEYS } from '../constants/chat.constants';
 import type { LlmMessage } from '../interfaces/llm-provider.interface';
 
 @Injectable()
@@ -24,15 +24,6 @@ export class ConversationStore {
       this.buildSessionKey(storeId, conversationId),
       start,
       stop,
-    );
-  }
-
-  async getRecentHistory(storeId: string, conversationId: string): Promise<LlmMessage[]> {
-    const limit = SLIDING_WINDOW_LIMIT;
-    return this.cacheService.lrange<LlmMessage>(
-      this.buildSessionKey(storeId, conversationId),
-      -limit,
-      -1,
     );
   }
 

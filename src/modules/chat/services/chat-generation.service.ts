@@ -105,6 +105,7 @@ export class ChatGenerationService {
     return {
       promptTokens: current.promptTokens + incoming.promptTokens,
       candidateTokens: current.candidateTokens + incoming.candidateTokens,
+      cachedTokens: current.cachedTokens + incoming.cachedTokens,
       totalTokens: current.totalTokens + incoming.totalTokens,
     };
   }

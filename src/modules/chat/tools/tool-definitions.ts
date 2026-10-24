@@ -4,8 +4,12 @@ export const SEARCH_PRODUCTS_TOOL: LlmTool = {
   name: 'search_products',
 
   description: `
-Search the store catalog for products matching the customer's request.
+Search the store catalog for NEW products matching the customer's request.
 Works across all store types (fashion, coffee & food, perfumes, electronics, etc.).
+
+Do NOT use this tool for follow-up questions about a product that was already shown or mentioned
+(sizes, colors, material, stock); use \`get_product_details\` instead.
+Do NOT use it for greetings, thanks, or non-shopping questions.
 `.trim(),
 
   parameters: {
@@ -28,7 +32,8 @@ Do NOT include prices or variant options (like size, weight, color) inside the q
 
       maxPrice: {
         type: 'number',
-        description: 'Maximum price budget if specified by the customer (e.g., "تحت 200 ريال").',
+        description:
+          'Maximum price budget as a plain number in the store currency, if specified by the customer (e.g., "تحت 200 ريال" → 200).',
       },
 
       optionFilter: {
@@ -40,6 +45,7 @@ Examples:
 - Coffee/Food: weight or grind/roast ("250 جرام", "حبوب كاملة", "مطحون إسبريسو", "1 كيلو")
 - Perfumes/Cosmetics: volume or concentration ("100 مل", "50ml")
 - Electronics: storage capacity or color ("256 جيجا", "تيتانيوم")
+If the search returns nothing with this filter, retry once without it.
 `.trim(),
       },
     },
@@ -59,7 +65,8 @@ Use this tool when the user asks follow-up questions about a product that was al
 - Product details & specs: "وش خامته؟", "إيش مواصفاته أو مكوناته؟", "ممكن تفاصيل أكثر عن هذا المنتج؟"
 - Stock check: "هل باقي منه في المخزون؟"
 
-Do NOT use \`search_products\` for follow-up questions about a specific product; use \`get_product_details\` instead.
+Lookup priority: \`variantId\` first (exact match), \`productName\` only as a fallback when no variantId is available.
+Do NOT use \`search_products\` for follow-up questions about a specific product; use this tool instead.
 `.trim(),
 
   parameters: {
@@ -70,15 +77,15 @@ Do NOT use \`search_products\` for follow-up questions about a specific product;
         type: 'string',
         description: `
 The exact or closest name of the product being discussed in the conversation context.
-Always provide this from the conversation history so the system can locate the product even if variantId is missing.
+Used as a fallback lookup when variantId is missing. Always provide it from the conversation history.
 `.trim(),
       },
 
       variantId: {
         type: 'string',
         description: `
-The variantId of the product if it was previously shown in the conversation (e.g., inside [DISPLAY_CARDS: ...]).
-Provide this whenever available in the recent messages for exact lookup.
+The variantId of the product if it appeared earlier in the conversation (in previous tool results or inside [DISPLAY_CARDS: ...]).
+Preferred over productName: provide it whenever available for an exact lookup.
 `.trim(),
       },
     },
@@ -96,6 +103,8 @@ Get the list of all available product categories in the store.
 Use this tool when:
 - The user asks broad questions about what the store sells: "وش عندكم بالمتجر؟", "إيش تبيعون؟", "وش الأقسام الموجودة؟"
 - The user has a vague shopping request (e.g., "أبغى هدية", "أبي أجهز للعيد") and you want to see the store's actual categories first before recommending or searching.
+
+Do not call it again if the categories are already known from earlier in the same conversation.
 `.trim(),
 
   parameters: {
@@ -115,6 +124,8 @@ Use this tool whenever the user asks about:
 - Return or exchange policy ("فيه استرجاع أو استبدال؟")
 - Payment methods or installments ("عندكم تابي أو تمارا؟", "فيه دفع عند الاستلام؟")
 - General store inquiries, branches, working hours, or authenticity FAQs.
+
+Answer strictly from the returned content; never guess a policy that is not stated.
 `.trim(),
 
   parameters: {

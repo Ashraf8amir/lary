@@ -3,7 +3,7 @@ import { ForbiddenException, Injectable, Logger } from '@nestjs/common';
 import { AssistantSettingsService } from '../assistant-settings/assistant-settings.service';
 import { PlanFeature } from '../subscriptions/enums/plan.enums';
 import { SubscriptionsService } from '../subscriptions/services/subscriptions.service';
-import { SLIDING_WINDOW_LIMIT, SUMMARY_MESSAGE_INTERVAL } from './constants/chat.constants';
+import { HISTORY_TAIL_CEILING, SUMMARY_MESSAGE_INTERVAL } from './constants/chat.constants';
 import type { ChatPersistPayload, ChatResponse } from './interfaces/chat.interface';
 import { SystemPromptBuilder } from './prompts/system-prompt.builder';
 import { ChatPersistPublisher } from './queues/publishers/chat-persist.publisher';
@@ -40,14 +40,15 @@ export class ChatService {
       throw new ForbiddenException('Chat assistant is currently disabled for this store.');
     }
 
-    const [recentHistory, conversationSummary] = await Promise.all([
+    const [fullHistory, conversationSummary, lastSummarizedCount] = await Promise.all([
       this.conversationStore.getHistory(storeId, conversationId),
       this.conversationStore.getSummary(storeId, conversationId),
+      this.conversationStore.getLastSummarizedCount(storeId, conversationId),
     ]);
 
-    const safeHistory = this.conversationContext.getRecentHistory(
-      recentHistory,
-      SLIDING_WINDOW_LIMIT,
+    const safeHistory = this.conversationContext.getPromptHistory(
+      fullHistory.slice(Math.min(lastSummarizedCount, fullHistory.length)),
+      HISTORY_TAIL_CEILING,
     );
 
     const hasCustomPersona = await this.subscriptionsService.hasFeature(
@@ -70,6 +71,16 @@ export class ChatService {
       storeId,
       conversationId,
     });
+
+    const usage = generationResult.tokenUsage;
+
+    if (usage) {
+      this.logger.debug(
+        `Gemini tokens for store ${storeId}, conversation ${conversationId}: ` +
+          `cached=${usage.cachedTokens}/${usage.promptTokens} prompt, ` +
+          `${usage.candidateTokens} output, ${usage.totalTokens} total`,
+      );
+    }
 
     const response = this.chatResponseBuilder.build(
       generationResult.finalText,
