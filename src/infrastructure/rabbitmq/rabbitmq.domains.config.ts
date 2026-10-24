@@ -1,5 +1,6 @@
 import { EVENTS } from '@shared/messaging/event.types';
 import { ROUTING_KEYS } from '@shared/messaging/routing-keys';
+
 import { CHAT_CONVERSATION_EXCHANGE, SALLA_PRODUCT_EXCHANGE } from './rabbitmq.constant';
 
 export interface DomainEventConfig {
@@ -47,6 +48,11 @@ export const DOMAINS: DomainConfig[] = [
         event: EVENTS.CHAT_CONVERSATION_SUMMARIZE,
         routingKey: ROUTING_KEYS.ROUTING_KEY_CHAT_CONVERSATION_SUMMARIZE,
         queueName: 'chat.conversation.summarize.queue',
+      },
+      {
+        event: EVENTS.CHAT_CONVERSATION_PERSIST,
+        routingKey: ROUTING_KEYS.ROUTING_KEY_CHAT_CONVERSATION_PERSIST,
+        queueName: 'chat.conversation.persist.queue',
       },
     ],
   },

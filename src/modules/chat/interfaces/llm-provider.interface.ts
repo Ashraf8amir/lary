@@ -1,4 +1,4 @@
-import { LlmTool } from './tool.interface';
+import { type LlmTool } from './tool.interface';
 
 export interface LlmToolCallRequest {
   id: string;
@@ -17,9 +17,16 @@ export interface LlmMessage {
   toolCalls?: LlmToolCallRequest[];
 }
 
+export interface LlmTokenUsage {
+  promptTokens: number;
+  candidateTokens: number;
+  totalTokens: number;
+}
+
 export interface LlmResponse {
   text: string | null;
   toolCalls: LlmToolCallRequest[];
+  tokenUsage?: LlmTokenUsage;
 }
 
 export interface LlmProvider {

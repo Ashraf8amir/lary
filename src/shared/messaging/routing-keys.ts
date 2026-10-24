@@ -3,4 +3,5 @@ export const ROUTING_KEYS = {
   ROUTING_KEY_PRODUCT_SYNC_INCREMENTAL: 'salla.product.sync.incremental',
   ROUTING_KEY_PRODUCT_SYNC_DELETED: 'salla.product.sync.deleted',
   ROUTING_KEY_CHAT_CONVERSATION_SUMMARIZE: 'chat.conversation.summarize',
+  ROUTING_KEY_CHAT_CONVERSATION_PERSIST: 'chat.conversation.persist',
 } as const;

@@ -4,8 +4,9 @@ import { AssistantSettingsService } from '../assistant-settings/assistant-settin
 import { PlanFeature } from '../subscriptions/enums/plan.enums';
 import { SubscriptionsService } from '../subscriptions/services/subscriptions.service';
 import { SLIDING_WINDOW_LIMIT, SUMMARY_MESSAGE_INTERVAL } from './constants/chat.constants';
-import { ChatResponse } from './interfaces/chat.interface';
+import type { ChatPersistPayload, ChatResponse } from './interfaces/chat.interface';
 import { SystemPromptBuilder } from './prompts/system-prompt.builder';
+import { ChatPersistPublisher } from './queues/publishers/chat-persist.publisher';
 import { ChatSummaryPublisher } from './queues/publishers/chat-summary.publisher';
 import { ChatGenerationService } from './services/chat-generation.service';
 import { ChatResponseBuilder } from './services/chat-response.builder';
@@ -24,6 +25,7 @@ export class ChatService {
     private readonly chatGenerationService: ChatGenerationService,
     private readonly chatResponseBuilder: ChatResponseBuilder,
     private readonly chatSummaryPublisher: ChatSummaryPublisher,
+    private readonly chatPersistPublisher: ChatPersistPublisher,
     private readonly subscriptionsService: SubscriptionsService,
   ) {}
 
@@ -88,16 +90,39 @@ export class ChatService {
       messagesToPersist,
     );
 
+    this.triggerPersist(storeId, conversationId, {
+      storeId,
+      conversationId,
+      userMessage,
+      assistantMessage: response.cleanReplyText,
+      cards: response.cards,
+    });
+
     this.triggerSummary(storeId, conversationId, totalMessageCount);
 
-    this.subscriptionsService.trackNewConversation(storeId).catch((err) => {
-      this.logger.error(`Failed to track usage for store ${storeId}`, err);
-    });
+    this.subscriptionsService
+      .trackNewConversation(storeId, generationResult.tokenUsage?.totalTokens ?? 0)
+      .catch((err) => {
+        this.logger.error(`Failed to track usage for store ${storeId}`, err);
+      });
 
     return {
       replyText: response.cleanReplyText,
       cards: response.cards,
     };
+  }
+
+  private triggerPersist(
+    storeId: string,
+    conversationId: string,
+    turnPayload: ChatPersistPayload,
+  ): void {
+    this.chatPersistPublisher.publishPersist(turnPayload).catch((error) => {
+      this.logger.error(
+        `Failed to queue chat turn persistence for store ${storeId}, conversation ${conversationId}`,
+        error,
+      );
+    });
   }
 
   private triggerSummary(storeId: string, conversationId: string, totalMessageCount: number): void {

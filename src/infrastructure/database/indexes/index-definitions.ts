@@ -1,4 +1,4 @@
-import { mongo } from 'mongoose';
+import { type mongo } from 'mongoose';
 
 export type CreateIndexesOptions = mongo.CreateIndexesOptions;
 export type IndexSpecification = mongo.IndexSpecification;
@@ -148,5 +148,36 @@ export const INDEX_DEFINITIONS: IndexDefinition[] = [
   {
     collection: 'processed_messages',
     spec: { status: 1, startedAt: 1 },
+  },
+
+  // ==========================================
+  // 8. Chat persistence (chat_conversations / chat_messages)
+  // ==========================================
+  {
+    collection: 'chat_conversations',
+    spec: { storeId: 1, conversationId: 1 },
+    options: { unique: true },
+  },
+  {
+    collection: 'chat_conversations',
+    spec: { storeId: 1, lastMessageAt: -1 },
+  },
+  {
+    collection: 'chat_conversations',
+    spec: { expiresAt: 1 },
+    options: { expireAfterSeconds: 0 },
+  },
+  {
+    collection: 'chat_messages',
+    spec: { storeId: 1, conversationId: 1, sequence: 1 },
+  },
+  {
+    collection: 'chat_messages',
+    spec: { storeId: 1, conversationId: 1, createdAt: 1 },
+  },
+  {
+    collection: 'chat_messages',
+    spec: { expiresAt: 1 },
+    options: { expireAfterSeconds: 0 },
   },
 ];

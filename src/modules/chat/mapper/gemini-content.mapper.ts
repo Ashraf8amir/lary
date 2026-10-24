@@ -7,9 +7,11 @@ import {
   Type,
 } from '@google/genai';
 import { Injectable } from '@nestjs/common';
+
 import type {
   LlmMessage,
   LlmResponse,
+  LlmTokenUsage,
   LlmToolCallRequest,
 } from '../interfaces/llm-provider.interface';
 import type {
@@ -103,9 +105,29 @@ export class GeminiContentMapper {
 
     const text = textParts.length > 0 ? textParts.join('').trim() : null;
 
+    const tokenUsage = this.readTokenUsage(response);
+
     return {
       text,
       toolCalls,
+      ...(tokenUsage ? { tokenUsage } : {}),
+    };
+  }
+
+  private readTokenUsage(response: GenerateContentResponse): LlmTokenUsage | undefined {
+    const usage = response.usageMetadata;
+
+    if (!usage) {
+      return undefined;
+    }
+
+    const promptTokens = usage.promptTokenCount ?? 0;
+    const candidateTokens = usage.candidatesTokenCount ?? 0;
+
+    return {
+      promptTokens,
+      candidateTokens,
+      totalTokens: usage.totalTokenCount ?? promptTokens + candidateTokens,
     };
   }
 
@@ -114,7 +136,7 @@ export class GeminiContentMapper {
   private buildToolResponsePart(message: LlmMessage): Part {
     let parsedResponse: Record<string, unknown>;
     try {
-      const parsed =
+      const parsed: unknown =
         typeof message.content === 'string' ? JSON.parse(message.content) : message.content;
       parsedResponse =
         typeof parsed === 'object' && parsed !== null
@@ -174,7 +196,7 @@ export class GeminiContentMapper {
 
         if (typeof call.arguments === 'string') {
           try {
-            argsObj = JSON.parse(call.arguments);
+            argsObj = JSON.parse(call.arguments) as Record<string, unknown>;
           } catch {
             argsObj = {};
           }

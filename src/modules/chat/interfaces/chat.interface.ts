@@ -1,5 +1,6 @@
-import { ProductCard } from '@modules/products/interfaces/product-card.interface';
-import { LlmMessage } from './llm-provider.interface';
+import { type ProductCard } from '@modules/products/interfaces/product-card.interface';
+
+import { type LlmMessage, type LlmTokenUsage } from './llm-provider.interface';
 
 export interface ChatResponse {
   replyText: string;
@@ -23,6 +24,7 @@ export interface ChatGenerationResult {
   finalText: string;
   messagesToSave: LlmMessage[];
   cards: ProductCard[];
+  tokenUsage?: LlmTokenUsage;
 }
 
 export interface PromptRelevantSettings {
@@ -36,4 +38,12 @@ export interface ChatSummarizePayload {
   storeId: string;
   conversationId: string;
   totalMessagesCount: number;
+}
+
+export interface ChatPersistPayload {
+  storeId: string;
+  conversationId: string;
+  userMessage: string;
+  assistantMessage: string;
+  cards: ProductCard[];
 }

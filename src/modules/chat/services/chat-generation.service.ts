@@ -3,7 +3,7 @@ import { Inject, Injectable, Logger } from '@nestjs/common';
 
 import { LLM_PROVIDER, MAX_TOOL_ROUNDS } from '../constants/chat.constants';
 import type { ChatGenerationResult, GenerateChatParams } from '../interfaces/chat.interface';
-import type { LlmMessage, LlmProvider } from '../interfaces/llm-provider.interface';
+import type { LlmMessage, LlmProvider, LlmTokenUsage } from '../interfaces/llm-provider.interface';
 import { ALL_TOOLS } from '../tools/tool-definitions';
 import { ToolExecutor } from './tool-executor';
 @Injectable()
@@ -31,8 +31,14 @@ export class ChatGenerationService {
 
     let finalText: string | null = null;
 
+    let tokenUsage: LlmTokenUsage | undefined;
+
     for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
       const response = await this.llmProvider.generateResponse(messages, ALL_TOOLS, systemPrompt);
+
+      if (response.tokenUsage) {
+        tokenUsage = this.mergeTokenUsage(tokenUsage, response.tokenUsage);
+      }
 
       if (!response.toolCalls?.length) {
         finalText = response.text || 'عذراً، لم أتمكن من إتمام طلبك، ممكن تعيد صياغته؟';
@@ -84,6 +90,22 @@ export class ChatGenerationService {
       finalText: finalText || 'عذراً، لم أتمكن من إتمام طلبك، ممكن تعيد صياغته؟',
       messagesToSave,
       cards,
+      tokenUsage,
+    };
+  }
+
+  private mergeTokenUsage(
+    current: LlmTokenUsage | undefined,
+    incoming: LlmTokenUsage,
+  ): LlmTokenUsage {
+    if (!current) {
+      return incoming;
+    }
+
+    return {
+      promptTokens: current.promptTokens + incoming.promptTokens,
+      candidateTokens: current.candidateTokens + incoming.candidateTokens,
+      totalTokens: current.totalTokens + incoming.totalTokens,
     };
   }
 }

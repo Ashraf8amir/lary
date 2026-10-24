@@ -6,6 +6,7 @@ export const chatValidationSchema = {
   GEMINI_MODEL: Joi.string().default('gemini-3.8-flash'),
   GEMINI_SUMMARY_MODEL: Joi.string().default('gemini-3.5-flash-lite'),
   CHAT_SESSION_TTL_SECONDS: Joi.number().default(1800),
+  CHAT_DEFAULT_RETENTION_DAYS: Joi.number().integer().min(-1).default(30),
 };
 
 export default registerAs('chat', () => ({
@@ -13,4 +14,5 @@ export default registerAs('chat', () => ({
   geminiModel: process.env.GEMINI_MODEL || 'gemini-3.8-flash',
   geminiSummaryModel: process.env.GEMINI_SUMMARY_MODEL || 'gemini-3.5-flash-lite',
   sessionTtlSeconds: Number(process.env.CHAT_SESSION_TTL_SECONDS) || 1800,
+  defaultRetentionDays: Number(process.env.CHAT_DEFAULT_RETENTION_DAYS) || 30,
 }));

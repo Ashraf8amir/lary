@@ -1,4 +1,5 @@
 import { ForbiddenException, Injectable, Logger } from '@nestjs/common';
+
 import { PlanFeature } from '../enums/plan.enums';
 import { SubscriptionStatus } from '../enums/subscription-status.enum';
 import {
@@ -79,7 +80,7 @@ export class SubscriptionsService {
     const plan = await this.plansService.getById(subscription.planId.toString());
 
     if (!plan) {
-      this.logger.error(`Plan not found for subscription ${subscription._id}`);
+      this.logger.error(`Plan not found for subscription ${subscription._id} of store ${storeId}`);
       throw new ForbiddenException('Subscription plan data is missing.');
     }
 
@@ -101,9 +102,23 @@ export class SubscriptionsService {
     }
   }
 
+  async getHistoryRetentionDays(storeId: string): Promise<number | null> {
+    const subscription = await this.subscriptionsRepository.findByStoreId(storeId);
+
+    if (!subscription) {
+      return null;
+    }
+
+    const plan = await this.plansService.getById(subscription.planId.toString());
+
+    return plan?.limits.historyRetentionDays ?? null;
+  }
+
   async hasFeature(storeId: string, feature: PlanFeature): Promise<boolean> {
     const subscription = await this.subscriptionsRepository.findByStoreId(storeId);
-    if (!subscription || !this.hasAccess(subscription)) return false;
+    if (!subscription || !this.hasAccess(subscription)) {
+      return false;
+    }
 
     const plan = await this.plansService.getById(subscription.planId.toString());
     return plan?.features.includes(feature) ?? false;
@@ -111,7 +126,9 @@ export class SubscriptionsService {
 
   async trackNewConversation(storeId: string, tokensUsed = 0): Promise<void> {
     const sub = await this.subscriptionsRepository.findByStoreId(storeId);
-    if (!sub) return;
+    if (!sub) {
+      return;
+    }
 
     await this.usageService.recordConversation(
       storeId,
