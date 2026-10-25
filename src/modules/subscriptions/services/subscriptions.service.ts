@@ -37,6 +37,10 @@ export class SubscriptionsService {
     return sub;
   }
 
+  async getSubscriptionByStoreId(storeId: string) {
+    return this.subscriptionsRepository.findByStoreId(storeId);
+  }
+
   async updateStatusByStoreId(
     storeId: string,
     status: SubscriptionStatus,

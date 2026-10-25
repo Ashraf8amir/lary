@@ -1,10 +1,11 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import { PlanFeature, PlanSlug } from '../enums/plan.enums';
-import { PlansRepository, PlanUpsertPayload } from '../repositories/plans.repository';
+import { PlanUpsertPayload } from '../repositories/plans.repository';
+import { PlansService } from '../services/plans.service';
 
 @Injectable()
 export class PlansSeeder implements OnModuleInit {
-  constructor(private readonly plansRepository: PlansRepository) {}
+  constructor(private readonly plansService: PlansService) {}
 
   async onModuleInit() {
     const plans: PlanUpsertPayload[] = [
@@ -28,6 +29,6 @@ export class PlansSeeder implements OnModuleInit {
       },
     ];
 
-    for (const plan of plans) await this.plansRepository.upsert(plan);
+    for (const plan of plans) await this.plansService.upsert(plan);
   }
 }

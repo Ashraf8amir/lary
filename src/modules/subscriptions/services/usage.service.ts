@@ -15,6 +15,10 @@ export class UsageService {
     return this.usageRepository.findCurrentUsage(storeId, periodStart, periodEnd);
   }
 
+  async getUsageHistory(storeId: string, limit = 12): Promise<UsageDocument[]> {
+    return this.usageRepository.findByStoreId(storeId, limit);
+  }
+
   async recordConversation(
     storeId: string,
     subscriptionId: string,

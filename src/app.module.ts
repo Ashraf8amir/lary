@@ -35,6 +35,7 @@ import { REDIS_CLIENT } from './infrastructure/redis/redis.constants';
 import { RedisModule } from './infrastructure/redis/redis.module';
 import { AssistantSettingsModule } from './modules/assistant-settings/assistant-settings.module';
 import { ChatModule } from './modules/chat/chat.module';
+import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { SallaModule } from './modules/integrations/salla/salla.module';
 import { UsersModule } from './modules/users/users.module';
 
@@ -78,6 +79,7 @@ import { UsersModule } from './modules/users/users.module';
     UsersModule,
     SallaModule,
     AssistantSettingsModule,
+    DashboardModule,
     ChatModule,
   ],
   providers: [

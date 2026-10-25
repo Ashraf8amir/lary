@@ -60,6 +60,66 @@ export class ChatPersistenceRepository {
     await this.messageModel.insertMany(messages, { session });
   }
 
+  async listConversations(
+    storeId: string,
+    limit = 20,
+    skip = 0,
+  ): Promise<ChatConversationDocument[]> {
+    if (!Types.ObjectId.isValid(storeId)) return [];
+
+    return this.conversationModel
+      .find({ storeId: new Types.ObjectId(storeId) })
+      .sort({ lastMessageAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .exec();
+  }
+
+  async countConversations(storeId: string): Promise<number> {
+    if (!Types.ObjectId.isValid(storeId)) return 0;
+
+    return this.conversationModel.countDocuments({ storeId: new Types.ObjectId(storeId) }).exec();
+  }
+
+  async getConversation(
+    storeId: string,
+    conversationId: string,
+  ): Promise<ChatConversationDocument | null> {
+    if (!Types.ObjectId.isValid(storeId)) return null;
+
+    return this.conversationModel
+      .findOne({
+        storeId: new Types.ObjectId(storeId),
+        conversationId,
+      })
+      .exec();
+  }
+
+  async listMessages(
+    storeId: string,
+    conversationId: string,
+    limit = 100,
+    skip = 0,
+  ): Promise<ChatMessageDocument[]> {
+    if (!Types.ObjectId.isValid(storeId)) return [];
+
+    return this.messageModel
+      .find({
+        storeId: new Types.ObjectId(storeId),
+        conversationId,
+      })
+      .sort({ sequence: 1 })
+      .skip(skip)
+      .limit(limit)
+      .exec();
+  }
+
+  async countMessages(storeId: string): Promise<number> {
+    if (!Types.ObjectId.isValid(storeId)) return 0;
+
+    return this.messageModel.countDocuments({ storeId: new Types.ObjectId(storeId) }).exec();
+  }
+
   private async reserveConversationSequence(
     storeId: Types.ObjectId,
     input: ArchiveTurnInput,

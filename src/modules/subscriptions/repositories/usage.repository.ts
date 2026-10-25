@@ -32,6 +32,19 @@ export class UsageRepository {
       .exec();
   }
 
+  async findByStoreId(
+    storeId: string,
+    limit = 12,
+  ): Promise<UsageDocument[]> {
+    if (!isValidObjectId(storeId)) return [];
+
+    return this.usageModel
+      .find({ storeId: new Types.ObjectId(storeId) })
+      .sort({ periodStart: -1 })
+      .limit(limit)
+      .exec();
+  }
+
   async recordConversation(
     storeId: string,
     subscriptionId: string,
